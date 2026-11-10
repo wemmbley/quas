@@ -8,8 +8,10 @@ Quas - это полная альтернатива Tailwind CSS. Этот од�
 
 ## ⚡️ Подключение
 
+В `<head>` Вашего сайта добавьте этот скрипт:
+
 ```html 
-...
+<script src="https://cbcdn.githack.com/wemmbley/quas/raw/branch/master/Compiled/Quas.min.js"></script>
 ```
 
 ## 🦚 Компонентные библиотки
