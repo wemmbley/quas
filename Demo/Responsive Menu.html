@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="../Source/Quas.js"></script>
+</head>
+<body>
+<div class="drawer">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle" />
+
+    <div class="drawer-content pb-20 lg:pb-0">
+        <section class="max-lg:hidden">
+            <div class="megamenu megamenu-wide p-2 border border-base-300" id="my-megamenu-3" popover>
+                <span class="megamenu-active"></span>
+
+                <button popovertarget="c1">One</button>
+                <div id="c1" popover>
+                    <div class="flex max-sm:flex-col items-start">
+                        <ul class="menu w-full md:menu-horizontal">
+                            <li>
+                                <a>Enterprise</a>
+                                <ul>
+                                    <li><a>CRM software</a></li>
+                                    <li><a>Marketing management</a></li>
+                                    <li><a>Security</a></li>
+                                    <li><a>Consulting</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a>Company</a>
+                                <ul>
+                                    <li><a>About us</a></li>
+                                    <li><a>Contact us</a></li>
+                                    <li><a>Privacy policy</a></li>
+                                    <li><a>Press kit</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <img src="https://img.daisyui.com/images/stock/photo-1559181567-c3190ca9959b.webp" class="md:max-w-sm max-md:w-auto" alt="Tailwind CSS megamenu" />
+                    </div>
+                </div>
+
+                <button popovertarget="c2">Two</button>
+                <div id="c2" popover>
+                    <div class="flex max-sm:flex-col items-start">
+                        <ul class="menu w-full md:menu-horizontal">
+                            <li>
+                                <a>Enterprise</a>
+                                <ul>
+                                    <li><a>CRM software</a></li>
+                                    <li><a>Marketing management</a></li>
+                                    <li><a>Security</a></li>
+                                    <li><a>Consulting</a></li>
+                                    <li><a>Privacy policy</a></li>
+                                    <li><a>Press kit</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a>Products</a>
+                                <ul>
+                                    <li><a>UI Kit</a></li>
+                                    <li><a>WordPress themes</a></li>
+                                    <li><a>WordPress plugins</a></li>
+                                    <li><a>Color picker app</a></li>
+                                    <li><a>About us</a></li>
+                                    <li><a>Contact us</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <img src="https://img.daisyui.com/images/stock/photo-1572635148818-ef6fd45eb394.webp" class="md:max-w-sm max-md:w-auto" alt="Tailwind CSS megamenu component" />
+                    </div>
+                </div>
+
+                <button popovertarget="c3">Three</button>
+                <div id="c3" popover>
+                    <div class="flex max-sm:flex-col items-start">
+                        <ul class="menu w-full md:menu-horizontal">
+                            <li>
+                                <ul>
+                                    <li class="menu-title">Solutions</li>
+                                    <li><a>Design</a></li>
+                                    <li><a>Development</a></li>
+                                    <li><a>Hosting</a></li>
+                                    <li><a>Domain register</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <ul>
+                                    <li class="menu-title">Products</li>
+                                    <li><a>UI Kit</a></li>
+                                    <li><a>Cloud Platform</a></li>
+                                    <li><a>Open source</a></li>
+                                    <li>
+                                        <ul>
+                                            <li><a>Auth management system</a></li>
+                                            <li><a>VScode theme</a></li>
+                                            <li><a>Color picker app</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <ul>
+                                    <li class="menu-title">Enterprise</li>
+                                    <li><a>CRM software</a></li>
+                                    <li><a>Marketing management</a></li>
+                                    <li><a>Security</a></li>
+                                    <li><a>Consulting</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <ul>
+                                    <li class="menu-title">Company</li>
+                                    <li><a>About us</a></li>
+                                    <li><a>Contact us</a></li>
+                                    <li><a>Privacy policy</a></li>
+                                    <li><a>Press kit</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="drawer-side">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul class="menu bg-base-200 min-h-full w-80 max-w-[85vw] p-4">
+            <li>
+                <details>
+                    <summary>One</summary>
+                    <ul>
+                        <li>
+                            <details>
+                                <summary>Enterprise</summary>
+                                <ul>
+                                    <li><a>CRM software</a></li>
+                                    <li><a>Marketing management</a></li>
+                                    <li><a>Security</a></li>
+                                    <li><a>Consulting</a></li>
+                                </ul>
+                            </details>
+                        </li>
+                        <li>
+                            <details>
+                                <summary>Company</summary>
+                                <ul>
+                                    <li><a>About us</a></li>
+                                    <li><a>Contact us</a></li>
+                                    <li><a>Privacy policy</a></li>
+                                    <li><a>Press kit</a></li>
+                                </ul>
+                            </details>
+                        </li>
+                    </ul>
+                </details>
+            </li>
+
+        </ul>
+    </div>
+</div>
+
+<div class="dock lg:hidden">
+    <label for="main-drawer">
+        <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="dock-label">Меню</span>
+    </label>
+
+    <button>
+        <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="currentColor" stroke-linejoin="miter" stroke-linecap="butt"><polyline points="1 11 12 2 23 11" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="2"></polyline><path d="m5,13v7c0,1.105.895,2,2,2h10c1.105,0,2-.895,2-2v-7" fill="none" stroke="currentColor" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2"></path><line x1="12" y1="22" x2="12" y2="18" fill="none" stroke="currentColor" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2"></line></g></svg>
+        <span class="dock-label">Главная</span>
+    </button>
+
+    <button>
+        <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="currentColor" stroke-linejoin="miter" stroke-linecap="butt"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2"></circle><path d="m22,13.25v-2.5l-2.318-.966c-.167-.581-.395-1.135-.682-1.654l.954-2.318-1.768-1.768-2.318.954c-.518-.287-1.073-.515-1.654-.682l-.966-2.318h-2.5l-.966,2.318c-.581.167-1.135.395-1.654.682l-2.318-.954-1.768,1.768.954,2.318c-.287.518-.515,1.073-.682,1.654l-2.318.966v2.5l2.318.966c.167.581.395,1.135.682,1.654l-.954,2.318,1.768,1.768,2.318-.954c.518.287,1.073.515,1.654.682l.966,2.318h2.5l.966-2.318c.581-.167,1.135-.395,1.654-.682l2.318.954,1.768-1.768-.954-2.318c.287-.518.515-1.073.682-1.654l2.318-.966Z" fill="none" stroke="currentColor" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2"></path></g></svg>
+        <span class="dock-label">Settings</span>
+    </button>
+</div>
+</body>
+</html>
