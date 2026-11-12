@@ -4,7 +4,9 @@
 
 Quas - это полная альтернатива Tailwind CSS. Этот однострочный JS 
 скрипт позволяет получить все преимущества Tailwind не устанавливая 
-его сборщик. 
+его сборщик. Ознакомиться с полной документацией Quas можно на 
+официальном сайте Tailwind 4 (API не отличается).
+https://tailwindcss.com/docs/styling-with-utility-classes
 
 ## ⚡️ Подключение
 
@@ -17,11 +19,15 @@ Quas - это полная альтернатива Tailwind CSS. Этот од�
 ## 🦚 Компонентные библиотки
 
 При желании Вы можете подключить любую готовую компонентую библиотеку. 
-Quas проверен как минимум на <a href="https://daisyui.com/components/">DaisyUI</a>: 
-```html 
-<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-```
-Линк добавить в `header` перед `Quas.js`.
+
+Пример:
+- `PrebuiltUI` https://prebuiltui.com/components
+- `HyperUI` https://hyperui.dev/
+- `DaisyUI` https://daisyui.com/components/
+
+Иконки:
+- `Bootstrap` https://icons.getbootstrap.com/
+- `UntitledUI` https://www.untitledui.com/free-icons
 
 ## ⚗️ Изолированный <css> тэг.
 
