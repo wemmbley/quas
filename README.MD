@@ -13,8 +13,15 @@ https://tailwindcss.com/docs/styling-with-utility-classes
 В `<head>` Вашего сайта добавьте этот скрипт:
 
 ```html 
-<script src="https://cbcdn.githack.com/wemmbley/quas/raw/branch/master/Compiled/Quas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/Quas.js"></script>
 ```
+
+Так же НАСТОЯТЕЛЬНО рекомендуем подключить ДЕБАГ в момент разработки:
+```html 
+<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/QuasDebug.js"></script>
+```
+
+В консоли Вы увидете все потенциальные проблемы Вашего кода, конфликты классов и проч.
 
 ## 🦚 Компонентные библиотки
 
