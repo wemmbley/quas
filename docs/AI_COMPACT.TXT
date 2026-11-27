@@ -19,9 +19,11 @@ Read this file fully before writing any markup that uses Quas. Everything below 
 <head>
   <script>window.Quas = { /* optional, see section 2 */ };</script>   <!-- must come BEFORE quas.js -->
   <script>window.tailwind = { config: { theme: { extend: { /* optional, section 8 */ } } } };</script>
-  <script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/quas.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@2.x/dist/quas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@2.x/dist/quas-debug.min.js"></script>
 </head>
 
+- Quas debug not required, only for dev mode to maintain css conflicts and safari browser support css mistakes.
 - Plain <script> in <head> (it appends <style> tags to document.head). Load it once per page.
 - Elements added later (JS, innerHTML, fetch partials, frameworks) and later class changes are picked up
   automatically by a MutationObserver (async, ~1 tick). For an immediate result call Quas.scan(root).
