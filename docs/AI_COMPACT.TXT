@@ -1,0 +1,261 @@
+QUAS — AI COMPACT REFERENCE
+Engine: quas.js v1.0 (fork of jcss). Runtime CSS engine, Tailwind CSS v4 compatible, v3 class names still work.
+Read this file fully before writing any markup that uses Quas. Everything below was verified in headless Chromium.
+
+================================================================================
+0. WHAT IT IS (30 seconds)
+================================================================================
+- ONE JS file. No build step, no CSS file, no config needed.
+- At runtime it reads class="" attributes from the live DOM, generates CSS for each class it understands,
+  and writes it to <style id="q-css-utilities">. Unknown classes (your own: "card", "modal") are ignored silently.
+- Write class names EXACTLY like Tailwind v4 docs. Do not invent names.
+- Dynamic classes work (`bg-${c}-500` is fine) as long as the final string reaches the DOM. No source scanning.
+- Extras: scoped component CSS (<css> tag / Quas.css) and an extension API.
+- Internal CSS variables use the prefix --q-* (NOT --tw-*). Never write --tw-* in arbitrary values.
+
+================================================================================
+1. CONNECT
+================================================================================
+<head>
+  <script>window.Quas = { /* optional, see section 2 */ };</script>   <!-- must come BEFORE quas.js -->
+  <script>window.tailwind = { config: { theme: { extend: { /* optional, section 8 */ } } } };</script>
+  <script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/quas.js"></script>
+</head>
+
+- Plain <script> in <head> (it appends <style> tags to document.head). Load it once per page.
+- Elements added later (JS, innerHTML, fetch partials, frameworks) and later class changes are picked up
+  automatically by a MutationObserver (async, ~1 tick). For an immediate result call Quas.scan(root).
+- Laravel/Blade: put the script tags in the layout header partial. Blade output is fine: scanning happens on the rendered DOM.
+- Injected automatically: Tailwind v4 preflight (<style id="q-css-preflight">: resets, .container, keyframes
+  spin/ping/pulse/bounce/fade, :root{--spacing:.25rem; --font-sans/--font-serif/--font-mono}),
+  and a first-paint "no transitions" override that is removed ~1 frame after load.
+- Browser support: Chrome 111+, Safari 16.4+, Firefox 128+ (uses oklab gradients, rgb(from ...), :where, @container, color-mix).
+
+================================================================================
+2. OPTIONS (set on window.Quas BEFORE the script; all optional)
+================================================================================
+CSSClassMode   true   scan class attributes + observe changes. false = only Quas.processClasses/scan work.
+CSSTagMode     true   process <css> tags (section 7).
+CleanDOM       true   replace a processed <css> tag by an empty comment (false = keep it, hidden).
+CSSWarnings    true   console.warn for unknown variants/values/utilities. false = silent.
+                      Or a function (token, message) => boolean; return true to print.
+CSSPerformance true   console.debug timing per scan.
+CSSNonce       auto   nonce for injected <style> (defaults to the nonce of quas.js's own <script>).
+AutoDarkMode   true   toggles class "dark" on <html> from prefers-color-scheme (live). false = you control it.
+LegacyV3       false  true = Tailwind v3 values for the ones that differ (section 9).
+cssExtensions  []     extension objects (section 8).
+
+================================================================================
+3. JS API
+================================================================================
+Quas.processClasses("p-4 hover:bg-red-500" | iterable)   register classes, regenerate CSS now.
+Quas.scan(rootNode = document)                           collect classes under a (detached/new) node and register them.
+Quas.css(text, id?)  /  Quas.css`...`                    register scoped CSS (syntax: section 7); returns scope class "q-css-N"
+                                                         (or "q-css-<id>"). Add that class to the element that owns the styles.
+Same text => same scope (anonymous scopes are deduplicated). Named ids (/^[\w-]+$/) are updated in place.
+Generated utility CSS is never removed when a class disappears (harmless).
+Dark mode: `dark:` = selector `html.dark .x`. Manual control: Quas.AutoDarkMode=false, then
+document.documentElement.classList.toggle('dark').
+
+================================================================================
+4. CLASS SYNTAX
+================================================================================
+variants   chain with ':' left to right:  dark:md:hover:bg-red-500      (v4 order: *:first:pt-0 — NOT first:*:pt-0)
+important  `flex!` (v4) or `!flex` (v3). Works with variants: hover:bg-red-600!
+negative   -mt-4  -translate-x-1/2  -rotate-45  -bg-linear-45  -inset-1
+fraction   w-1/2 top-1/3 basis-2/3 aspect-[4/3]
+arbitrary  p-[3px] w-[calc(100%-8px)] grid-cols-[1fr_2fr] bg-[#bada55] bg-[url('/a_b.png')] shadow-[0_0_10px_red]
+           '_' = space, '__' = literal '_'. Spaces around + and - inside calc/min/max/clamp are added automatically.
+css var    bg-(--brand)  fill-(--c)  w-(--w)  bg-(--c)/50  == bg-[var(--brand)]   (v3 bg-[--x] is NOT supported: use parentheses)
+type hint  text-(length:--x) text-(color:--x) text-[length:var(--x)] bg-[size:60px_60px] bg-[position:center_top]
+           bg-[image:url(a.png)] bg-[color:var(--x)].  Hints: color length size percentage position image url number ratio angle integer.
+           Without a hint: bare var() is a COLOR for bg-/text-; a value that looks like a color (hex, rgb/hsl/oklch/lab/color-mix,
+           CSS named color) is a color; otherwise length-ish.
+opacity    bg-red-500/50   bg-red-500/[0.3]   bg-red-500/[71.37%]   bg-red-500/(--a)  bg-[#1a0633]/50  bg-[red]/50  bg-(--c)/50
+           (/(--a) variable must hold a PERCENTAGE like 50%). Works for bg text border ring shadow outline decoration fill stroke accent caret from via to divide.
+text lh    text-lg/7  text-sm/tight  text-sm/[17px]  text-sm/(--lh)    (N => N*0.25rem; none tight snug normal relaxed loose)
+arb. prop  [mask-type:luminance]  [--gutter:1rem]  lg:[--gutter:2rem]  hover:[transform:rotate(3deg)]
+arb. variant  [&>p]:mt-4  [&.is-on]:flex  [&_p]:mt-4 (space = '_')  [@supports(display:grid)]:grid  [@media(min-width:900px)]:flex
+bare color  text-red == text-red-500 (any family without a shade means 500). Exact names win: white black primary neutral ...
+Class tokens: group, peer, group/name, peer/name are markers (no CSS). Classes starting with q-css- are internal.
+
+================================================================================
+5. UTILITIES  (patterns; {a,b} = alternatives; N = number; * = any value above)
+================================================================================
+Spacing scale: N => N*0.25rem. Also px, N.5, fractions, full, auto, [arbitrary], (--var).
+
+LAYOUT   block inline inline-block inline-flex flex grid inline-grid table table-{cell,row,caption,column,...} flow-root contents list-item hidden
+         static fixed absolute relative sticky | inset-* inset-x-* inset-y-* top-* right-* bottom-* left-* start-* end-* | z-{N|auto|[x]}
+         visible invisible collapse | isolate isolation-auto | float-{left,right,start,end,none} clear-* | overflow{-x,-y}-{auto,hidden,clip,visible,scroll}
+         overscroll{-x,-y}-{auto,contain,none} | object-{contain,cover,fill,none,scale-down,center,top,...} | aspect-{auto,square,video,[a/b]}
+         columns-{N,xs..7xl} break-{after,before,inside}-* box-decoration-{clone,slice} box-{border,content}
+FLEX/GRID flex-{row,col,row-reverse,col-reverse,wrap,nowrap,1,auto,none,initial} grow{-0} shrink{-0} basis-* order-{N,first,last,none}
+         grid-cols-{N,none,subgrid,[x]} col-{span-N,span-full,start-N,end-N,auto} grid-rows-* row-* grid-flow-{row,col,dense,...} auto-cols-* auto-rows-*
+         gap-* gap-x-* gap-y-* space-x-* space-y-* divide-{x,y}{-N} divide-{style} divide-{color}
+         justify-* items-* content-* self-* place-{content,items,self}-*
+SIZE     w-* h-* size-* min-w-* max-w-* min-h-* max-h-* ; keywords: full screen svw dvw lvw svh dvh lvh min max fit auto px ; max-w-{xs..7xl,prose,screen-sm..screen-2xl,none}
+         logical: is-* min-is-* max-is-* bs-* min-bs-* max-bs-*
+PADDING/MARGIN  p{,x,y,t,r,b,l,s,e}-*   m{,x,y,t,r,b,l,s,e}-* (negative ok, mx-auto)   (s/e = inline start/end)
+TEXT     text-{xs,sm,base,lg,xl,2xl..9xl}  text-{color}  text-{left,center,right,justify,start,end}  text-{wrap,nowrap,balance,pretty,ellipsis,clip}
+         font-{sans,serif,mono,thin..black}  italic not-italic  antialiased subpixel-antialiased  tracking-{tighter..widest}  leading-{none,tight,snug,normal,relaxed,loose,N}
+         uppercase lowercase capitalize normal-case  underline overline line-through no-underline  decoration-{color,solid,double,dotted,dashed,wavy,N,auto,from-font}
+         underline-offset-*  indent-* tab-*  align-{baseline,top,middle,bottom,text-top,text-bottom,sub,super}  whitespace-*  break-{normal,all,keep,words}
+         wrap-{normal,break-word,anywhere}  hyphens-{none,manual,auto}  line-clamp-{N,none}  truncate  list-{none,disc,decimal,inside,outside}  list-image-*
+         normal-nums ordinal slashed-zero lining-nums oldstyle-nums proportional-nums tabular-nums diagonal-fractions stacked-fractions
+         font-stretch-*  text-shadow-{2xs..lg,none,color}  content-{none,['x'],[attr(x)]}
+BACKGROUND  bg-{color}  bg-{fixed,local,scroll}  bg-clip-{border,padding,content,text}  bg-origin-*  bg-{center,top,bottom,left,right,top-left,right-top,...}
+         bg-{repeat,no-repeat,repeat-x,repeat-y,repeat-round,repeat-space}  bg-{auto,cover,contain}  bg-none  bg-blend-*  bg-[url(...)]
+         gradients: bg-linear-to-{t,tr,r,br,b,bl,l,tl}  bg-linear-N (angle in deg, e.g. bg-linear-45)  bg-linear-[25deg,red_5%,blue]  bg-radial  bg-radial-[at_25%_25%]  bg-conic  bg-conic-N (from N deg)
+                    interpolation: bg-linear-to-r/srgb (also /hsl /oklab /oklch /longer /shorter /increasing /decreasing)
+                    stops: from-{color} via-{color} to-{color} from-10% via-30% to-90% via-none ; v3 alias bg-gradient-to-* still works
+BORDER   rounded{,-xs,-sm,-md,-lg,-xl,-2xl,-3xl,-4xl,-none,-full,-[x]}  rounded-{t,r,b,l,tl,tr,br,bl,s,e,ss,se,ee,es}-*
+         border{,-0,-2,-4,-8} border-{x,y,t,r,b,l,s,e}{-N} border-{color} border-{solid,dashed,dotted,double,hidden,none}
+         outline{,-0,-1,-2,-4,-8} outline-{color} outline-{dashed,dotted,double,none,hidden} outline-offset-N
+         ring{,-0,-1,-2,-3,-4,-8} ring-{color} ring-inset ring-offset-N ring-offset-{color} inset-ring{,-N} inset-ring-{color}
+EFFECTS  shadow-{2xs,xs,sm,md,lg,xl,2xl,none,[x]} shadow-{color} inset-shadow-{2xs,xs,sm,none,color} text-shadow-*
+         opacity-{0..100} mix-blend-* bg-blend-*  mask-{none,alpha,luminance,match,clip-*,origin-*,composite-*,center,top,...,repeat,no-repeat,auto,cover,contain,size-[x],type-*,[x]}
+FILTERS  blur-{xs,sm,md,lg,xl,2xl,3xl,none} brightness-N contrast-N grayscale{,-0} hue-rotate-N invert{,-0} saturate-N sepia{,-0}
+         drop-shadow-{xs,sm,md,lg,xl,2xl,none,color}  backdrop-{blur,brightness,contrast,grayscale,hue-rotate,invert,opacity,saturate,sepia}-*  filter-none
+TRANSFORM  translate-{x,y,z}-* translate-none | scale-N scale-{x,y,z}-N scale-none (N is percent: scale-105) | rotate-N rotate-{x,y,z}-N rotate-none
+         skew-N skew-{x,y}-N | perspective-{none,dramatic,near,normal,midrange,distant,[x]} perspective-origin-*
+         origin-* backface-{visible,hidden} transform-{none,gpu,cpu,flat,3d} zoom-N
+         v4 model: native translate/scale/rotate properties; rotate-x/y/z and skew go through `transform`.
+TRANSITION  transition{,-all,-colors,-opacity,-shadow,-transform,-none,-normal,-allow-discrete,-[a,b]}  duration-N delay-N ease-{linear,in,out,in-out,initial,[x]}
+         animate-{none,spin,ping,pulse,bounce,fade,[x]}
+TABLES   border-{collapse,separate} border-spacing{,-x,-y}-* table-{auto,fixed} caption-{top,bottom}
+INTERACT accent-{auto,color} caret-{auto,color} appearance-{none,auto} cursor-* pointer-events-{none,auto} resize{,-none,-x,-y} select-* will-change-{auto,scroll,contents,transform}
+         scroll-{auto,smooth} scroll-{m,p}{,x,y,t,r,b,l}-* snap-{start,end,center,align-none,normal,always,none,x,y,both,mandatory,proximity} overscroll-*
+         touch-* scheme-{normal,light,dark,light-dark,only-light,only-dark} field-sizing-{fixed,content} scrollbar-{auto,thin,none} scrollbar-gutter-*
+         scrollbar-{color} (thumb) scrollbar-track-{color}
+SVG/A11Y fill-{none,current,color} stroke-{none,current,color,N} sr-only not-sr-only forced-color-adjust-{auto,none}
+CONTAINER @container @container/name @container-size @container-normal ; .container class is provided (width:100% + max-width per breakpoint)
+
+COLORS   families (11 shades each 50..950): red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose slate gray zinc neutral stone
+         + white black transparent current inherit. NOT available: taupe mauve mist olive.
+         Palette colors compile to literal rgb() — they are NOT CSS variables (var(--color-red-500) does not exist).
+         Semantic names compile to var(--color-NAME) — YOU must define them: base-100 base-200 base-300 base-content primary secondary accent neutral info
+         success warning error (+ "-content" variants), e.g. :root{--color-primary:#ff5fa8}  (bare "neutral" = semantic var; neutral-500 = palette).
+         Custom colors: section 8.
+
+================================================================================
+6. VARIANTS  (prefix:utility, stackable)
+================================================================================
+state    hover focus focus-within focus-visible active visited target open default checked indeterminate placeholder-shown autofill
+         optional required valid invalid user-valid user-invalid in-range out-of-range read-only empty enabled disabled inert
+structure first last only odd even first-of-type last-of-type only-of-type nth-N nth-[2n+1] nth-last-N nth-of-type-N nth-last-of-type-N
+element  before after first-letter first-line marker selection file placeholder backdrop details-content
+children *:flex  (direct children)   **:flex  (all descendants)
+group    group-{hover,focus,active,checked,disabled,odd,...,has-[a],aria-expanded,data-[x=y]}  group-hover/name:   (needs class "group" or "group/name" on ancestor)
+peer     peer-{checked,invalid,hover,...}  peer-checked/name:   (peer must PRECEDE the element as a sibling)
+logic    has-[a]  has-checked  not-hover  not-[.x]  not-print  not-supports-[...]  in-hover  in-[.x]  (in-* = any ancestor, no group class needed)
+attr     aria-{busy,checked,disabled,expanded,hidden,pressed,readonly,required,selected}  aria-[sort=ascending]  data-active  data-[size=large]
+dir      rtl ltr
+responsive  sm(40rem) md(48rem) lg(64rem) xl(80rem) 2xl(96rem) = min-width ; max-sm max-md max-lg max-xl max-2xl = max-width ; md:max-xl: range
+         min-[600px]  max-[600px]
+container @3xs @2xs @xs @sm @md @lg @xl @2xl ... @7xl ; @min-[475px] @max-md @max-[x] ; named: @sm/main:
+media    dark motion-safe motion-reduce contrast-more contrast-less forced-colors not-forced-colors inverted-colors portrait landscape print noscript
+         pointer-{fine,coarse,none} any-pointer-{fine,coarse,none}
+at-rule  supports-[display:grid] supports-grid not-supports-[x] starting
+Notes: hover: only fires on devices that can hover (@media (hover:hover)); LegacyV3 removes that guard.
+       Cascade order follows Tailwind v4 (hover < focus < active; breakpoints after states).
+
+================================================================================
+7. SCOPED COMPONENT CSS  (<css> tag, Quas.css)
+================================================================================
+Put <css> as a CHILD of the element that owns the styles. Quas compiles it, adds class "q-css-N" to the PARENT, removes the tag.
+<div class="p-4">
+  <css id="card">                      <!-- id optional: [\w-]+, gives stable scope class q-css-card -->
+    & { border-radius: 12px; }         native block. `&` = the scope root (the parent element)
+    h2: text-xl font-bold;             rule: "selector: utilities;"  (selector scoped under the parent; space after the colon is REQUIRED)
+    h2:hover: text-brand;              line prefixes after the selector are variants applied to every utility on the line
+    p:dark: text-white;
+    a:md:hover: underline;
+    ::after { content: ''; }           selectors starting with :: attach to the root
+    // comments, /* comments */, <!-- comments -->
+  </css>
+  <h2>Title</h2><p>Text</p><a href="#">Link</a>
+</div>
+Equivalent JS:  el.classList.add(Quas.css(`h2: text-xl;`, 'card'))   or   Quas.css`h2: text-xl;`
+Rules: no nested rules, no @media/@supports blocks inside <css> (use md:/supports-[...] line prefixes instead).
+       Component CSS is inserted BEFORE utilities, so utility classes win on equal specificity.
+       group-*/peer-* variants work inside scopes. Selectors like html/body/:root cannot match from inside a scope (a warning is printed; use &).
+
+================================================================================
+8. CUSTOMIZING  (all before the script loads)
+================================================================================
+A) tailwind.config compatibility (window.tailwind.config.theme.extend):
+   colors:     { ink: '#112233', brand: { DEFAULT: '#ff5fa8', dark: '#6a1b7e' } }   -> bg-ink, text-brand, text-brand-dark. ONLY #rgb/#rrggbb.
+   boxShadow:  { neon: '0 0 20px #f0f' }  -> shadow-neon        (DEFAULT -> bare `shadow`)
+   fontFamily: { display: ['Inter','sans-serif'] } -> font-display
+   Anything else in the config is ignored.
+B) Extensions (more power): window.Quas = { cssExtensions: [ { colors, utilities, prefixes } ] }
+   colors     same format as above.
+   utilities  deep-merged into the built-in utility tree. A node is:
+                'name': 'css declarations string'                         -> .name { ... }
+                'name': { $prop:'css-prop' | ['a','b'], key:'value', ..., $num:fn, $arbitrary:true|fn, ... }
+              meta keys: $prop (css property or array)   $values (array/object of allowed keywords)   $num (fn: bare number -> value)
+                         $frac (fraction support)   $arbitrary (true = raw value, or fn(value, ctx))   $color (fn(colorName, opacity, ctx) -> value)
+                         $default (fn(valuePart, ctx))   $negative (allow -name)   $base (zero-specificity declarations)
+                         $inherit (meta keys children inherit)   $selector (selector handler)
+              ctx is mutable: ctx.$prop = '...' re-targets the property; ctx.$hint = type hint if one was given.
+   prefixes   { name: { type:'pseudo', handler: selector => newSelector } | { type:'wrapper', handler: rule => `@... {${rule}}` } }
+   Example:
+     window.Quas = { cssExtensions: [{
+       colors: { brand: '#ff5fa8' },
+       utilities: {
+         'text-stroke': { $prop:'-webkit-text-stroke-width', $num: v => v + 'px', $arbitrary: true, 'none': '0' },
+         'glass': 'backdrop-filter: blur(12px); background: rgb(255 255 255 / 0.08)'
+       },
+       prefixes: {
+         'selected': { type:'pseudo',  handler: s => s + '[data-selected]' },
+         'ios':      { type:'wrapper', handler: r => `@supports (-webkit-touch-callout: none) {${r}}` }
+       }
+     }] };
+   -> class="text-stroke-2 glass selected:underline ios:p-2".
+   Extension utilities are emitted after built-ins, so they win equal-specificity conflicts (e.g. glass's background beats bg-brand).
+
+================================================================================
+9. v4 vs v3  (v4 is the default; v3-only classes keep working)
+================================================================================
+Still valid from v3: bg-gradient-to-*, bg-opacity-N, text/border/ring-opacity-N, flex-shrink-*, flex-grow, overflow-ellipsis, !flex,
+                     bare shadow / rounded / blur / drop-shadow / backdrop-blur (= the v4 "-sm" look), shadow-inner, outline-none.
+Values that DIFFER (default v4  |  with window.Quas={LegacyV3:true}):
+  shadow-sm            0 1px 3px + 0 1px 2px     |  0 1px 2px
+  rounded-sm           0.25rem                   |  0.125rem
+  blur-sm/backdrop-blur-sm  8px                  |  4px
+  drop-shadow-{sm..2xl}     v4 values            |  v3 values
+  border default color currentColor              |  #e5e7eb (gray-200)
+  ring (bare) color    currentColor, width 1px   |  blue-500/50  (width is 1px in both; use ring-3 for old 3px)
+  hover:               @media (hover:hover)      |  plain :hover
+  gradients            interpolate `in oklab`    |  plain (sRGB)
+  outline-none         style none                |  2px transparent outline
+New in v4 only: shadow-2xs/xs, rounded-xs/4xl, blur-xs, inset-ring, masks, bg-linear/radial/conic, rotate-x/y/z, scale-z, translate-z, perspective-*,
+                logical props (ps pe ms me start end rounded-s/e border-s/e is bs), nth-* has-* not-* in-* @container supports-* starting, *: **:,
+                flex! suffix, (--var) syntax, text-lg/7, /[..] and /(--a) opacity, bare color names.
+Variant order: v4 left-to-right only (*:first:pt-0). v3's first:*:pt-0 meaning is not kept.
+
+================================================================================
+10. NOT SUPPORTED / LIMITS
+================================================================================
+- Gradient masks: mask-linear-*, mask-radial-*, mask-conic-*, mask-{t,r,b,l,x,y}-from/to-*.
+- Colors taupe mauve mist olive. CSS-first config: @theme @utility @custom-variant @source @apply @reference @import "tailwindcss".
+- tailwind.config options other than extend.colors / boxShadow / fontFamily. Hex-only custom colors (no oklch in config).
+- theme(), --alpha(), --spacing() CSS functions (use calc(var(--spacing)*N)).
+- Palette colors as CSS variables. Prefix mode (tw:). Safelist (not needed: scanning is runtime).
+- <css> blocks: no nesting, no at-rules.
+- Quas needs a DOM: no SSR/pre-render of CSS; first paint is styled after the script runs (keep it in <head>, sync).
+
+================================================================================
+11. RULES FOR AI WHEN GENERATING QUAS CODE
+================================================================================
+1. Use Tailwind v4 names. Prefer v4 spellings (flex!, bg-linear-to-r, shadow-xs, rounded-xs, outline-hidden).
+2. No spaces inside one class: use _ in arbitrary values. Never use @apply, @theme, tailwind.config.js, build tools, or --tw-* variables.
+3. Do not rely on CSS variables for palette colors. Define semantic colors yourself (:root{--color-primary:...}) or use extend.colors.
+4. Dropdown/popover pattern that works: parent `relative group`; panel `invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible`;
+   keep NO gap between trigger and panel (use pt-N inside the panel); give the navbar/stacking parent `relative z-50` so panels are not covered by later positioned siblings.
+5. A `backdrop-blur` / `transform` / `filter` / `opacity<1` parent creates a stacking context: z-index inside it cannot beat siblings outside it.
+6. Elements created from JS become styled one tick later. For measurement right after insertion call Quas.scan(node) first.
+7. dark: needs class "dark" on <html>; it is toggled automatically from the OS unless AutoDarkMode=false.
+8. For component-local styles prefer <css>; for one-off styling use classes. Both can be mixed; classes override <css> on equal specificity.
+9. Do not warn the user about Tailwind build config (content globs, safelist): Quas has none.
+10. If a class prints "[Quas] Unknown ..." in the console, it is not supported: check sections 5-6 and 10 instead of guessing alternatives.

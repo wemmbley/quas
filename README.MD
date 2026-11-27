@@ -13,12 +13,26 @@ https://tailwindcss.com/docs/styling-with-utility-classes
 В `<head>` Вашего сайта добавьте этот скрипт:
 
 ```html 
-<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/Quas.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@2.x/dist/quas.min.js"></script>
 ```
 
-Так же НАСТОЯТЕЛЬНО рекомендуем подключить ДЕБАГ в момент разработки:
+Так же НАСТОЯТЕЛЬНО рекомендуем подключить ДЕБАГ в момент разработки
+Он помогает отследить опасные сочетания утилит которые ломают верстку на мобилках и сафари.
 ```html 
-<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@master/Source/QuasDebug.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/wemmbley/quas@2.x/dist/quas-debug.min.js"></script>
+```
+
+Так же РЕКОМЕНДУЕМ добавить следующий код FOUC-prevention в начало <head>
+При условии, что Ваш сайт использует темную тему `dark:`:
+```html 
+const theme = localStorage.getItem('theme');
+
+document.documentElement.classList.toggle(
+	'dark',
+	theme === 'dark' ||
+	(theme === null &&
+	 window.matchMedia('(prefers-color-scheme: dark)').matches)
+);
 ```
 
 В консоли Вы увидете все потенциальные проблемы Вашего кода, конфликты классов и проч.
@@ -33,8 +47,9 @@ https://tailwindcss.com/docs/styling-with-utility-classes
 - `DaisyUI` https://daisyui.com/components/
 
 Иконки:
-- `Bootstrap` https://icons.getbootstrap.com/
+- `Feather` https://feathericons.com/
 - `UntitledUI` https://www.untitledui.com/free-icons
+- `Bootstrap` https://icons.getbootstrap.com/
 
 ## ⚗️ Изолированный <css> тэг.
 
@@ -75,7 +90,7 @@ https://tailwindcss.com/docs/styling-with-utility-classes
 
 ## 🧬 Настройки темы
 
-Загружать ДО подключения скрипта `Quas.js`:
+Загружать ДО подключения скрипта `quas.js`:
 ```html 
 <script>
   window.tailwind = {
@@ -104,7 +119,7 @@ https://tailwindcss.com/docs/styling-with-utility-classes
 ## 🔨 Расширение утилитарных классов
 
 Вы можете добавить новые утилитарные классы, цвета и префиксы. 
-Скрипт выполнять ДО загрузки `Quas.js`:
+Скрипт выполнять ДО загрузки `quas.js`:
 ```html 
 <script>
   window.Q = window.Q || {};

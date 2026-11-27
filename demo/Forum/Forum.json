@@ -1,0 +1,47 @@
+{
+  "profile": {
+    "name": "Имя пользователя",
+    "messages": 24,
+    "reputation": 24,
+    "group": "Администратор",
+    "expires": "навсегда",
+    "likesToday": 15,
+    "members": "1 248"
+  },
+  "topics": [
+    { "id": 1, "badge": "Закреплено", "title": "Правила форума обновлены", "note": "2026", "category": "Объявления", "meta": "сегодня, 13:13", "href": "topic.html" },
+    { "id": 2, "badge": "Закреплено", "title": "Знакомимся: расскажите о себе", "note": "", "category": "Сообщество", "meta": "вчера, 18:42", "href": "topic.html" },
+    { "id": 3, "badge": "Новое", "title": "Что вы сейчас читаете?", "note": "", "category": "Книги и культура", "meta": "вчера, 16:08", "href": "topic.html" },
+    { "id": 4, "badge": "Тема", "title": "Поделитесь своим рабочим местом", "note": "", "category": "Творчество", "meta": "12 ответов", "href": "topic.html" }
+  ],
+  "forums": [
+    {
+      "id": 1,
+      "icon": "N",
+      "title": "Мой первый подфорум",
+      "desc": "Обсуждаем идеи, задаём вопросы и делимся опытом.",
+      "tags": "Подраздел · Подраздел · Подраздел",
+      "lastTopic": "Обсуждение недели",
+      "lastBy": "Wembly",
+      "lastTime": "сегодня, в 22:12",
+      "href": "topic.html"
+    },
+    {
+      "id": 2,
+      "icon": "✳",
+      "title": "Новости и объявления",
+      "desc": "Важные обновления сообщества.",
+      "tags": "Правила · События",
+      "lastTopic": "Встреча сообщества",
+      "lastBy": "Alex",
+      "lastTime": "сегодня, в 20:04",
+      "href": "topic.html"
+    }
+  ],
+  "sections": [
+    { "id": 1, "icon": "✦", "name": "Общее", "topics": "24", "posts": "999", "href": "topic.html" },
+    { "id": 2, "icon": "◌", "name": "Творчество", "topics": "18", "posts": "304", "href": "topic.html" },
+    { "id": 3, "icon": "⌘", "name": "Технологии", "topics": "32", "posts": "1.2k", "href": "topic.html" },
+    { "id": 4, "icon": "♡", "name": "Свободное общение", "topics": "12", "posts": "186", "href": "topic.html" }
+  ]
+}

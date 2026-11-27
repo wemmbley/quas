@@ -1,0 +1,28 @@
+{
+  "name": "quas",
+  "version": "1.0.0",
+  "description": "<img src=\"Quas.png\" style=\"margin-top: 10px; margin-bottom: 0; padding-bottom: 0\">",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "rolldown -c",
+    "watch": "rolldown -c -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wemmbley/quas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/wemmbley/quas/issues"
+  },
+  "homepage": "https://github.com/wemmbley/quas#readme",
+  "devDependencies": {
+    "rolldown": "^1.3.4"
+  }
+}

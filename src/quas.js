@@ -3,10 +3,12 @@
 // Я взял движок на доработку под свои нужды.
 
 // | -------------------------------------------------------
-// | Q U A S - v1.0
+// | Q U A S - v2.0.0
 // | -------------------------------------------------------
 // |
 (function () {
+	console.log('[Quas]: Loaded v2.0.0');
+	
     'use strict';
 
     // =========================================================================
@@ -27,6 +29,13 @@
     Q.CSSTagMode ??= true;
     Q.CSSWarnings ??= true;
     Q.CSSPerformance ??= true;
+    // Quas targets Tailwind CSS v4. Every v3-only class keeps working (bg-gradient-to-*, bg-opacity-*,
+    // flex-shrink-*, `!flex`, bare `shadow`/`rounded`/`blur`...). The only values that DIFFER between
+    // v3 and v4 are the renamed scales (shadow-sm, rounded-sm, blur-sm, drop-shadow-*, backdrop-blur-sm),
+    // the default border/ring colors, `hover:` (touch-safe in v4) and gradient interpolation.
+    // Set `window.Quas = { LegacyV3: true }` BEFORE loading this script to get the v3 values back.
+    Q.LegacyV3 ??= false;
+    const V3 = Q.LegacyV3 === true;
 
     Q.CSSNonce ??= document.currentScript?.nonce || null;
 
@@ -76,6 +85,17 @@
         yellow : ['fefce8', 'fef9c2', 'fff085', 'ffdf20', 'fbc800', 'edb200', 'cc8900', 'a36100', '894b00', '733e0a', '432004'],
         zinc   : ['fafafa', 'f4f4f5', 'e4e4e7', 'd4d4d8', '9f9fa9', '71717b', '52525c', '3f3f46', '27272a', '18181b', '09090b']
     };
+    // Bare family names fall back to the 500 shade: `text-red` === `text-red-500`.
+    // Exact names (white, black, DaisyUI-style `primary`, `neutral`, custom colors) always win.
+    function aliasBareColors() {
+        for (const key of [...colorMap.keys()]) {
+            if (key.endsWith('-500')) {
+                const family = key.slice(0, -4);
+                if (!colorMap.has(family)) colorMap.set(family, colorMap.get(key));
+            }
+        }
+    }
+
     // Map array indices to their corresponding shade names
     const shadeKeys = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
 
@@ -99,37 +119,49 @@
     // DESIGN TOKENS
     // =========================================================================
 
+    // v4 scales. The bare names (`shadow`, `blur`, `rounded`, `drop-shadow`) are kept as aliases of the new `sm`
+    // (that is exactly what the v3 -> v4 rename does), so v3 markup keeps its look.
+    const SC = '--q-shadow-color';
     const SHADOW_MAP = {
-        'sm': '0 1px 2px 0 var(--q-shadow-color, rgb(0 0 0 / 0.05))',
-        '': '0 1px 3px 0 var(--q-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--q-shadow-color, rgb(0 0 0 / 0.1))',
-        'md': '0 4px 6px -1px var(--q-shadow-color, rgb(0 0 0 / 0.1)), 0 2px 4px -2px var(--q-shadow-color, rgb(0 0 0 / 0.1))',
-        'lg': '0 10px 15px -3px var(--q-shadow-color, rgb(0 0 0 / 0.1)), 0 4px 6px -4px var(--q-shadow-color, rgb(0 0 0 / 0.1))',
-        'xl': '0 20px 25px -5px var(--q-shadow-color, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(--q-shadow-color, rgb(0 0 0 / 0.1))',
-        '2xl': '0 25px 50px -12px var(--q-shadow-color, rgb(0 0 0 / 0.25))',
+        '2xs': `0 1px var(${SC}, rgb(0 0 0 / 0.05))`,
+        'xs':  `0 1px 2px 0 var(${SC}, rgb(0 0 0 / 0.05))`,
+        'sm':  V3
+            ? `0 1px 2px 0 var(${SC}, rgb(0 0 0 / 0.05))`
+            : `0 1px 3px 0 var(${SC}, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(${SC}, rgb(0 0 0 / 0.1))`,
+        '':    `0 1px 3px 0 var(${SC}, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(${SC}, rgb(0 0 0 / 0.1))`,
+        'md':  `0 4px 6px -1px var(${SC}, rgb(0 0 0 / 0.1)), 0 2px 4px -2px var(${SC}, rgb(0 0 0 / 0.1))`,
+        'lg':  `0 10px 15px -3px var(${SC}, rgb(0 0 0 / 0.1)), 0 4px 6px -4px var(${SC}, rgb(0 0 0 / 0.1))`,
+        'xl':  `0 20px 25px -5px var(${SC}, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(${SC}, rgb(0 0 0 / 0.1))`,
+        '2xl': `0 25px 50px -12px var(${SC}, rgb(0 0 0 / 0.25))`,
         'none': '0 0 #0000',
-        // v3
-        'inner': 'inset 0 2px 4px 0 var(--q-shadow-color, rgb(0 0 0 / 0.05))',
+        // v3 (removed in v4, kept for compatibility)
+        'inner': `inset 0 2px 4px 0 var(${SC}, rgb(0 0 0 / 0.05))`,
     };
 
+    const ISC = '--q-inset-shadow-color';
     const INSET_SHADOW_MAP = {
-        '2xs': 'inset 0 1px 0 var(--q-shadow-color, rgb(0 0 0 / 0.05))',
-        'xs': 'inset 0 1px 1px 0 var(--q-shadow-color, rgb(0 0 0 / 0.05))',
-        'sm': 'inset 0 2px 4px 0 var(--q-shadow-color, rgb(0 0 0 / 0.05))',
+        '2xs': `inset 0 1px var(${ISC}, rgb(0 0 0 / 0.05))`,
+        'xs':  `inset 0 1px 1px var(${ISC}, rgb(0 0 0 / 0.05))`,
+        'sm':  `inset 0 2px 4px var(${ISC}, rgb(0 0 0 / 0.05))`,
         'none': 'inset 0 0 #0000',
     };
 
+    const DSC = '--q-drop-shadow-color';
+    const ds = (list) => list.map(([x, c]) => `drop-shadow(${x} var(${DSC}, rgb(0 0 0 / ${c})))`).join(' ');
     const DROP_SHADOW_MAP = {
-        'sm': 'drop-shadow(0 1px 1px rgb(0 0 0 / 0.05))',
-        '': 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
-        'md': 'drop-shadow(0 2px 2px rgb(0 0 0 / 0.1))',
-        'lg': 'drop-shadow(0 4px 4px rgb(0 0 0 / 0.15))',
-        'xl': 'drop-shadow(0 8px 8px rgb(0 0 0 / 0.15))',
-        '2xl': 'drop-shadow(0 12px 24px rgb(0 0 0 / 0.15))',
+        'xs': ds([['0 1px 1px', 0.05]]),
+        'sm': V3 ? ds([['0 1px 1px', 0.05]]) : ds([['0 1px 2px', 0.15]]),
+        '':   V3 ? ds([['0 1px 2px', 0.1], ['0 1px 1px', 0.06]]) : ds([['0 1px 2px', 0.15]]),
+        'md': V3 ? ds([['0 4px 3px', 0.07], ['0 2px 2px', 0.06]]) : ds([['0 3px 3px', 0.12]]),
+        'lg': V3 ? ds([['0 10px 8px', 0.04], ['0 4px 3px', 0.1]]) : ds([['0 4px 4px', 0.15]]),
+        'xl': V3 ? ds([['0 20px 13px', 0.03], ['0 8px 5px', 0.08]]) : ds([['0 9px 7px', 0.1]]),
+        '2xl': V3 ? ds([['0 25px 25px', 0.15]]) : ds([['0 25px 25px', 0.15]]),
         'none': 'drop-shadow(0 0 #0000)',
     };
 
     const BLUR_MAP = {
-        'sm': 'blur(4px)',
+        'xs': 'blur(4px)',
+        'sm': V3 ? 'blur(4px)' : 'blur(8px)',
         '': 'blur(8px)',
         'md': 'blur(12px)',
         'lg': 'blur(16px)',
@@ -140,13 +172,15 @@
 
     const BORDER_RADIUS_SCALE = {
         'none': '0',
-        'sm': '0.125rem',
+        'xs': '0.125rem',
+        'sm': V3 ? '0.125rem' : '0.25rem',
         '': '0.25rem',
         'md': '0.375rem',
         'lg': '0.5rem',
         'xl': '0.75rem',
         '2xl': '1rem',
         '3xl': '1.5rem',
+        '4xl': '2rem',
         'full': '9999px',
     };
 
@@ -202,6 +236,7 @@
         }
     }
     addColors(TW_EXTEND.colors);
+    aliasBareColors();
 
     // Support tailwind.config.theme.extend.boxShadow
     Object.assign(
@@ -259,6 +294,12 @@
     function generateColorCss(name, opacity, opacityVariable) {
         const color = colorMap.get(name);
 
+        // Opacity from a CSS variable: bg-cyan-400/(--alpha)  (the variable holds a percentage, like in v4)
+        if (opacity && opacity.cssVar) {
+            const base = typeof color === 'string' ? color : `rgb(${color.join(' ')})`;
+            return `color-mix(in oklab, ${base} ${opacity.cssVar}, transparent)`;
+        }
+
         // Special keywords
         if (typeof color === 'string') {
             if (opacity != null && color.startsWith('var('))
@@ -283,11 +324,19 @@
         return `rgb(${rgb})`;
     }
 
+    const NAMED_COLORS = new Set(('transparent currentcolor aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen').split(' '));
+
     // Checks if an arbitrary string looks like a standard CSS color format
     function looksLikeColor(value) {
         return /^#[\da-f]{3,8}$/i.test(value) ||
-            /^rgba?\(/.test(value) ||
-            /^hsla?\(/.test(value)
+            /^(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\(/i.test(value) ||
+            NAMED_COLORS.has(String(value).toLowerCase());
+    }
+
+    // Arbitrary-value type hints: text-[color:var(--x)], bg-(length:--x), ...
+    // `context.$hint` is set by the resolver. Without a hint we guess from the value.
+    function isColorValue(value, context) {
+        return context && context.$hint ? context.$hint === 'color' : looksLikeColor(value);
     }
 
     // Renames *-width props to *-color (e.g. border-t-width -> border-t-color)
@@ -301,20 +350,13 @@
 
     const BASE_CSS = {
 
-        transform: compact(`
-    --q-translate-x: 0;
-    --q-translate-y: 0;
-    --q-rotate: 0;
-    --q-skew-x: 0;
-    --q-skew-y: 0;
-    --q-scale-x: 1;
-    --q-scale-y: 1;
-    transform: translate(var(--q-translate-x), var(--q-translate-y))
-            rotate(var(--q-rotate))
-            skewX(var(--q-skew-x))
-            skewY(var(--q-skew-y))
-            scale(var(--q-scale-x), var(--q-scale-y))
-    `),
+        // v4 uses the individual `translate`, `scale` and `rotate` properties (so `transition-[scale]` and
+        // `scale-none` work); only 3D rotation and skew still go through `transform`.
+        translate:  'translate: var(--q-translate-x, 0) var(--q-translate-y, 0)',
+        translateZ: 'translate: var(--q-translate-x, 0) var(--q-translate-y, 0) var(--q-translate-z, 0)',
+        scale:      'scale: var(--q-scale-x, 1) var(--q-scale-y, 1)',
+        scaleZ:     'scale: var(--q-scale-x, 1) var(--q-scale-y, 1) var(--q-scale-z, 1)',
+        transform:  'transform: var(--q-rotate-x,) var(--q-rotate-y,) var(--q-rotate-z,) var(--q-skew-x,) var(--q-skew-y,)',
         transition: 'transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms',
         filter: compact(`
     --q-blur: ;
@@ -337,18 +379,22 @@
     --q-backdrop-invert: ;
     --q-backdrop-saturate: ;
     --q-backdrop-sepia: ;
-    backdrop-filter: var(--q-backdrop-blur) var(--q-backdrop-brightness) var(--q-backdrop-contrast) var(--q-backdrop-grayscale) var(--q-backdrop-hue-rotate) var(--q-backdrop-invert) var(--q-backdrop-saturate) var(--q-backdrop-sepia)
+    --q-backdrop-opacity: ;
+    -webkit-backdrop-filter: var(--q-backdrop-blur) var(--q-backdrop-brightness) var(--q-backdrop-contrast) var(--q-backdrop-grayscale) var(--q-backdrop-hue-rotate) var(--q-backdrop-invert) var(--q-backdrop-opacity) var(--q-backdrop-saturate) var(--q-backdrop-sepia);
+    backdrop-filter: var(--q-backdrop-blur) var(--q-backdrop-brightness) var(--q-backdrop-contrast) var(--q-backdrop-grayscale) var(--q-backdrop-hue-rotate) var(--q-backdrop-invert) var(--q-backdrop-opacity) var(--q-backdrop-saturate) var(--q-backdrop-sepia)
     `),
         shadow: compact(`
     --q-shadow: 0 0 #0000;
+    --q-inset-shadow: 0 0 #0000;
+    --q-inset-ring-shadow: 0 0 #0000;
     --q-ring-inset: ;
     --q-ring-offset-width: 0px;
     --q-ring-offset-color: #fff;
-    --q-ring-color: rgb(59 130 246 / 0.5);
+    --q-ring-color: ${V3 ? 'rgb(59 130 246 / 0.5)' : 'currentColor'};
     --q-ring-width: 0px;
     --q-ring-offset-shadow: var(--q-ring-inset) 0 0 0 var(--q-ring-offset-width) var(--q-ring-offset-color);
     --q-ring-shadow: var(--q-ring-inset) 0 0 0 calc(var(--q-ring-width) + var(--q-ring-offset-width)) var(--q-ring-color);
-    box-shadow: var(--q-ring-offset-shadow), var(--q-ring-shadow), var(--q-shadow, 0 0 #0000)
+    box-shadow: var(--q-inset-shadow, 0 0 #0000), var(--q-inset-ring-shadow, 0 0 #0000), var(--q-ring-offset-shadow), var(--q-ring-shadow), var(--q-shadow, 0 0 #0000)
     `),
         borderSpacing: compact(`
     --q-border-spacing-x: 0;
@@ -363,12 +409,21 @@
     // =========================================================================
 
     const aria = a => ({ type: 'pseudo', handler: s => `${s}[aria-${a}="true"]` });
-    const ARIA_STATES = ['checked', 'disabled', 'expanded', 'hidden', 'pressed', 'readonly', 'required', 'selected'];
+    const ARIA_STATES = ['busy', 'checked', 'disabled', 'expanded', 'hidden', 'pressed', 'readonly', 'required', 'selected'];
 
     const media = query => ({
         type: 'wrapper', // Wraps the entire CSS rule in an at-rule (e.g., a @media query)
         handler: rule => `@media ${query} {${rule}}`,
+        negated: rule => `@media not ${query} {${rule}}`,
     });
+    const atRule = (header, negatedHeader) => ({
+        type: 'wrapper',
+        handler: rule => `${header} {${rule}}`,
+        negated: negatedHeader ? (rule => `${negatedHeader} {${rule}}`) : undefined,
+    });
+    // v4 only applies `hover:` on devices that can really hover. These wrappers are "ordered": they keep their
+    // place in the cascade (before focus/active) instead of being moved to the end like breakpoints.
+    const HOVER_WRAP = V3 ? undefined : { key: '(hover: hover)', handler: rule => `@media (hover: hover) {${rule}}` };
 
     const pseudo = suffix => ({
         type: 'pseudo', // Modifies the selector string (e.g., adds a pseudo-class like :hover)
@@ -398,10 +453,21 @@
         'landscape': media('(orientation: landscape)'),
         'portrait': media('(orientation: portrait)'),
         'print': media('print'),
+        'forced-colors': media('(forced-colors: active)'),
+        'not-forced-colors': media('(forced-colors: none)'),
+        'inverted-colors': media('(inverted-colors: inverted)'),
+        'pointer-none': media('(pointer: none)'),
+        'pointer-coarse': media('(pointer: coarse)'),
+        'pointer-fine': media('(pointer: fine)'),
+        'any-pointer-none': media('(any-pointer: none)'),
+        'any-pointer-coarse': media('(any-pointer: coarse)'),
+        'any-pointer-fine': media('(any-pointer: fine)'),
+        'noscript': media('(scripting: none)'),
+        'starting': atRule('@starting-style'),
 
         // --- PSEUDO-CLASS SELECTORS (type: pseudo) ---
         // Interaction states
-        'hover': pseudo(':hover'),
+        'hover': { type: 'pseudo', handler: s => `${s}:hover`, wrap: HOVER_WRAP },
         'placeholder-shown': pseudo(':placeholder-shown'), // Must be before 'focus'
         'focus': pseudo(':focus'),
         'focus-within': pseudo(':focus-within'),
@@ -429,7 +495,16 @@
         'optional': pseudo(':optional'),
         'valid': pseudo(':valid'),
         'invalid': pseudo(':invalid'),
-        'open': pseudo('[open]'),
+        'open': pseudo(':is([open], :popover-open, :open)'),
+        'default': pseudo(':default'),
+        'autofill': pseudo(':autofill'),
+        'user-valid': pseudo(':user-valid'),
+        'user-invalid': pseudo(':user-invalid'),
+        'in-range': pseudo(':in-range'),
+        'out-of-range': pseudo(':out-of-range'),
+        'inert': pseudo(':is([inert], [inert] *)'),
+        '*': pseudo(' > *'),
+        '**': pseudo(' *'),
 
         // --- PSEUDO-ELEMENT SELECTORS (type: pseudo) ---
         'before': pseudo('::before'),
@@ -438,12 +513,14 @@
         'file': pseudo('::file-selector-button'),
         'marker': { type: 'pseudo', handler: (s) => `${s}::marker, ${s} *::marker` },
         'selection': { type: 'pseudo', handler: (s) => `${s}::selection, ${s} *::selection` },
+        'backdrop': pseudo('::backdrop'),
+        'details-content': pseudo('::details-content'),
         'first-letter': pseudo('::first-letter'),
         'first-line': pseudo('::first-line'),
 
         // --- ATTRIBUTE & CONTEXTUAL SELECTORS (type: pseudo) ---
-        'rtl': { type: 'pseudo', handler: (s) => `[dir="rtl"] ${s}` },
-        'ltr': { type: 'pseudo', handler: (s) => `[dir="ltr"] ${s}` },
+        'rtl': pseudo(':where(:dir(rtl), [dir="rtl"], [dir="rtl"] *)'),
+        'ltr': pseudo(':where(:dir(ltr), [dir="ltr"], [dir="ltr"] *)'),
         // Aria attributes (only for "true" values, as this is most common)
         ...Object.fromEntries(ARIA_STATES.map(a => [`aria-${a}`, aria(a)])),
 
@@ -948,7 +1025,7 @@
                 $arbitrary: true,
             },
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                if (isColorValue(value, context)) {
                     context.$prop = 'color';
                     return value;
                 }
@@ -1078,7 +1155,7 @@
             'from-font': 'from-font',
             $num: TRANSFORMERS.px,
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) context.$prop = 'text-decoration-color';
+                if (isColorValue(value, context)) context.$prop = 'text-decoration-color';
                 return value;
             },
 
@@ -1168,7 +1245,22 @@
                 $num: TRANSFORMERS.opacity,
             },
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                // Tailwind type hints: bg-[size:60px_60px], bg-[position:center_top],
+                // bg-[color:var(--x)], bg-[image:url(a.png)]
+                const hint = value.match(/^(color|length|size|percentage|position|image|url):(.+)$/);
+                if (hint) {
+                    context.$prop = {
+                        color: 'background-color',
+                        length: 'background-size',
+                        size: 'background-size',
+                        percentage: 'background-size',
+                        position: 'background-position',
+                        image: 'background-image',
+                        url: 'background-image',
+                    }[hint[1]];
+                    return hint[1] === 'url' ? `url(${hint[2]})` : hint[2];
+                }
+                if (isColorValue(value, context)) {
                     context.$prop = 'background-color'
                     return value;
                 }
@@ -1194,7 +1286,7 @@
             },
 
             'clip': {
-                $prop: 'background-clip',
+                $prop: ['-webkit-background-clip', 'background-clip'],
                 'border': 'border-box',
                 'padding': 'padding-box',
                 'content': 'content-box',
@@ -1497,7 +1589,7 @@
             },
             // Arbitrary value: colour-ish → ring colour, otherwise width.
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                if (isColorValue(value, context)) {
                     context.$prop = '--q-ring-color';
                     return value;
                 }
@@ -1702,7 +1794,7 @@
 
             // Let's define how to handle arbitrary values like 'border-[2px]' or 'border-[#ccc]'
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                if (isColorValue(value, context)) {
                     context.$base = undefined
                     context.$prop = toColorProp(context.$prop);
                 }
@@ -1735,7 +1827,7 @@
             },
 
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                if (isColorValue(value, context)) {
                     context.$prop = 'outline-color';
                 }
                 return value;
@@ -1940,7 +2032,7 @@
                 return generateColorCss(colorName, opacity);
             },
             $arbitrary: (value, context) => {
-                if (looksLikeColor(value)) {
+                if (isColorValue(value, context)) {
                     context.$prop = 'stroke';
                 } else {
                     context.$prop = 'stroke-width';
@@ -2048,9 +2140,316 @@
             a
     ), a);
 
+    // =========================================================================
+    // TAILWIND v4 ADDITIONS (everything v3 already had keeps working)
+    // =========================================================================
+    {
+        const U = UTILITY_CONFIG;
+        const STOPS = 'var(--q-gradient-stops)';
+        const OKLAB = V3 ? '' : ' in oklab';
+
+        // ---- Transforms: native `translate` / `scale` / `rotate`, 3D rotation and skew through `transform` ----
+        const deg = v => `${v}deg`;
+        Object.assign(U, {
+            'transform': {
+                '': BASE_CSS.transform,
+                'cpu': BASE_CSS.transform,
+                'gpu': 'transform: translateZ(0) var(--q-rotate-x,) var(--q-rotate-y,) var(--q-rotate-z,) var(--q-skew-x,) var(--q-skew-y,)',
+                'none': 'transform: none',
+                'flat': 'transform-style: flat',
+                '3d': 'transform-style: preserve-3d',
+            },
+            'translate': {
+                $base: BASE_CSS.translate,
+                $num: TRANSFORMERS.rem, $frac, $negative: true, $arbitrary: true,
+                $values: { 'full': '100%', 'px': '1px' },
+                'x': { $inherit, $prop: '--q-translate-x' },
+                'y': { $inherit, $prop: '--q-translate-y' },
+                'z': { $inherit, $base: BASE_CSS.translateZ, $prop: '--q-translate-z' },
+            },
+            'translate-none': 'translate: none',
+            'scale': {
+                $base: BASE_CSS.scale,
+                $num: v => `${v}%`, $negative: true, $arbitrary: true,
+                $prop: ['--q-scale-x', '--q-scale-y', '--q-scale-z'],
+                'x': { $inherit, $prop: '--q-scale-x' },
+                'y': { $inherit, $prop: '--q-scale-y' },
+                'z': { $inherit, $base: BASE_CSS.scaleZ, $prop: '--q-scale-z' },
+            },
+            'scale-none': 'scale: none',
+            'rotate': {
+                $prop: 'rotate', $num: deg, $negative: true, $arbitrary: true,
+                'none': 'none',
+                'x': { $prop: '--q-rotate-x', $base: BASE_CSS.transform, $num: v => `rotateX(${v}deg)`, $negative: true, $arbitrary: v => `rotateX(${v})` },
+                'y': { $prop: '--q-rotate-y', $base: BASE_CSS.transform, $num: v => `rotateY(${v}deg)`, $negative: true, $arbitrary: v => `rotateY(${v})` },
+                'z': { $prop: '--q-rotate-z', $base: BASE_CSS.transform, $num: v => `rotateZ(${v}deg)`, $negative: true, $arbitrary: v => `rotateZ(${v})` },
+            },
+            'skew': {
+                $base: BASE_CSS.transform, $negative: true,
+                $num: (v, ctx) => { ctx.$prop = ''; return `--q-skew-x: skewX(${v}deg); --q-skew-y: skewY(${v}deg)`; },
+                $arbitrary: (v, ctx) => { ctx.$prop = ''; return `--q-skew-x: skewX(${v}); --q-skew-y: skewY(${v})`; },
+                'x': { $prop: '--q-skew-x', $base: BASE_CSS.transform, $negative: true, $num: v => `skewX(${v}deg)`, $arbitrary: v => `skewX(${v})` },
+                'y': { $prop: '--q-skew-y', $base: BASE_CSS.transform, $negative: true, $num: v => `skewY(${v}deg)`, $arbitrary: v => `skewY(${v})` },
+            },
+            'perspective': {
+                $prop: 'perspective', $num: TRANSFORMERS.px, $arbitrary: true,
+                'none': 'none', 'dramatic': '100px', 'near': '300px', 'normal': '500px', 'midrange': '800px', 'distant': '1200px',
+                'origin': {
+                    $prop: 'perspective-origin', $arbitrary: true,
+                    'center': 'center', 'top': 'top', 'top-right': 'top right', 'right': 'right',
+                    'bottom-right': 'bottom right', 'bottom': 'bottom', 'bottom-left': 'bottom left',
+                    'left': 'left', 'top-left': 'top left',
+                },
+            },
+            'zoom': { $prop: 'zoom', $num: v => `${v}%`, $arbitrary: true },
+        });
+
+        // ---- Transitions ----
+        merge(U.transition, {
+            '': 'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter',
+            'colors': 'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke',
+            'transform': 'transform, translate, scale, rotate',
+            'normal': { '': 'transition-behavior: normal' },
+            'allow-discrete': { '': 'transition-behavior: allow-discrete' },
+        });
+        merge(U.ease, { $values: { 'initial': 'initial' } });
+
+        // ---- Shadows / rings / filters ----
+        Object.assign(U, {
+            'inset-shadow': {
+                $prop: '--q-inset-shadow', $base: BASE_CSS.shadow, ...INSET_SHADOW_MAP,
+                $color: (c, o, ctx) => { ctx.$prop = '--q-inset-shadow-color'; return generateColorCss(c, o); },
+                $arbitrary: (value, ctx) => {
+                    if (isColorValue(value, ctx)) { ctx.$prop = '--q-inset-shadow-color'; return value; }
+                    return `inset ${value}`;
+                },
+            },
+            'inset-ring': {
+                $base: BASE_CSS.shadow,
+                $default: (v, ctx) => {
+                    if (v === '') { ctx.$prop = '--q-inset-ring-shadow'; return 'inset 0 0 0 1px var(--q-inset-ring-color, currentColor)'; }
+                },
+                $num: (v, ctx) => { ctx.$prop = '--q-inset-ring-shadow'; return `inset 0 0 0 ${v}px var(--q-inset-ring-color, currentColor)`; },
+                $arbitrary: (value, ctx) => {
+                    if (isColorValue(value, ctx)) { ctx.$prop = '--q-inset-ring-color'; return value; }
+                    ctx.$prop = '--q-inset-ring-shadow';
+                    return `inset 0 0 0 ${/^[\d.]+$/.test(value) ? value + 'px' : value} var(--q-inset-ring-color, currentColor)`;
+                },
+                $color: (c, o, ctx) => { ctx.$prop = '--q-inset-ring-color'; return generateColorCss(c, o); },
+            },
+        });
+        merge(U['drop-shadow'], {
+            $color: (c, o, ctx) => { ctx.$prop = '--q-drop-shadow-color'; return generateColorCss(c, o); },
+        });
+        merge(U.backdrop, {
+            'opacity': { $prop: '--q-backdrop-opacity', $base: BASE_CSS.backdrop, $num: v => `opacity(${TRANSFORMERS.opacity(v)})`, $arbitrary: v => `opacity(${v})` },
+        });
+        if (V3) merge(U.outline, { 'none': { '': 'outline: 2px solid transparent; outline-offset: 2px' } });
+
+        // ---- Backgrounds & gradients (v4: `bg-linear-*`, `bg-radial`, `bg-conic`, interpolation modifiers) ----
+        {
+            const dirs = { t: 'to top', tr: 'to top right', r: 'to right', br: 'to bottom right', b: 'to bottom', bl: 'to bottom left', l: 'to left', tl: 'to top left' };
+            const space = mod => ({
+                srgb: ' in srgb', hsl: ' in hsl', oklab: ' in oklab', oklch: ' in oklch',
+                longer: ' in oklch longer hue', shorter: ' in oklch shorter hue',
+                increasing: ' in oklch increasing hue', decreasing: ' in oklch decreasing hue',
+            })[mod];
+            const linearTo = () => ({
+                $prop: 'background-image',
+                ...Object.fromEntries(Object.entries(dirs).map(([k, d]) => [k, `linear-gradient(${d}${OKLAB}, ${STOPS})`])),
+                $default: v => {
+                    const [dir, mod] = v.split('/');
+                    if (!hasOwn(dirs, dir) || space(mod) === undefined) return;
+                    return `linear-gradient(${dirs[dir]}${space(mod)}, ${STOPS})`;
+                },
+                $arbitrary: value => `linear-gradient(${value}, ${STOPS})`,
+            });
+            Object.assign(U.bg, {
+                'gradient-to': linearTo(),
+                'linear': {
+                    $prop: 'background-image', $negative: true,
+                    $num: v => `linear-gradient(${v}deg${OKLAB}, ${STOPS})`,
+                    $default: v => {
+                        const m = v.match(/^(-?[\d.]+)\/(\w+)$/);
+                        if (m && space(m[2]) !== undefined) return `linear-gradient(${m[1]}deg${space(m[2])}, ${STOPS})`;
+                    },
+                    $arbitrary: value => `linear-gradient(${value})`,
+                    'to': linearTo(),
+                },
+                'radial': {
+                    $prop: 'background-image',
+                    '': V3 ? `radial-gradient(ellipse, ${STOPS})` : `radial-gradient(in oklab, ${STOPS})`,
+                    $arbitrary: value => `radial-gradient(${value}, ${STOPS})`,
+                },
+                'conic': {
+                    $prop: 'background-image', $negative: true,
+                    '': `conic-gradient(${V3 ? '' : 'in oklab, '}${STOPS})`,
+                    $num: v => `conic-gradient(from ${v}deg${OKLAB}, ${STOPS})`,
+                    $arbitrary: value => `conic-gradient(${value}, ${STOPS})`,
+                },
+                'right-top': 'background-position: right top',
+                'right-bottom': 'background-position: right bottom',
+                'left-top': 'background-position: left top',
+                'left-bottom': 'background-position: left bottom',
+                'top-right': 'background-position: top right',
+                'bottom-right': 'background-position: bottom right',
+                'bottom-left': 'background-position: bottom left',
+                'top-left': 'background-position: top left',
+                $arbitrary: (value, ctx) => {
+                    const hint = ctx.$hint;
+                    if (hint) {
+                        ctx.$prop = {
+                            color: 'background-color', length: 'background-size', size: 'background-size',
+                            'bg-size': 'background-size', percentage: 'background-size',
+                            position: 'background-position', image: 'background-image', url: 'background-image',
+                        }[hint] || 'background-image';
+                        return hint === 'url' ? `url(${value})` : value;
+                    }
+                    // `bg-(--x)` / `bg-[var(--x)]` is a color, exactly like in Tailwind.
+                    if (looksLikeColor(value) || /^var\(/.test(value)) { ctx.$prop = 'background-color'; return value; }
+                    ctx.$prop = 'background-image';
+                    return value;
+                },
+            });
+            merge(U.via, { 'none': '--q-gradient-via: ; --q-gradient-stops: var(--q-gradient-from), var(--q-gradient-to)' });
+        }
+
+        // ---- Layout / spacing / sizing ----
+        const inset = { 'auto': 'auto', 'full': '100%', 'px': '1px', $num: TRANSFORMERS.rem, $frac, $arbitrary: true, $negative: true };
+        Object.assign(U, {
+            'start': { $prop: 'inset-inline-start', ...inset },
+            'end': { $prop: 'inset-inline-end', ...inset },
+            'collapse': 'visibility: collapse',
+            'box-decoration': { 'clone': '-webkit-box-decoration-break: clone; box-decoration-break: clone', 'slice': '-webkit-box-decoration-break: slice; box-decoration-break: slice' },
+            'ps': { $prop: 'padding-inline-start', ...SPACING_PADDING_CONFIG },
+            'pe': { $prop: 'padding-inline-end', ...SPACING_PADDING_CONFIG },
+            'ms': { $prop: 'margin-inline-start', ...SPACING_MARGIN_CONFIG },
+            'me': { $prop: 'margin-inline-end', ...SPACING_MARGIN_CONFIG },
+            'is': { ...U.w, $prop: 'inline-size' },
+            'min-is': { ...U['min-w'], $prop: 'min-inline-size' },
+            'max-is': { ...U['max-w'], $prop: 'max-inline-size' },
+            'bs': { ...U.h, $prop: 'block-size' },
+            'min-bs': { ...U['min-h'], $prop: 'min-block-size' },
+            'max-bs': { ...U['max-h'], $prop: 'max-block-size' },
+            'wrap': { $prop: 'overflow-wrap', 'normal': 'normal', 'break-word': 'break-word', 'anywhere': 'anywhere' },
+        });
+        const screens = { 'screen-sm': '40rem', 'screen-md': '48rem', 'screen-lg': '64rem', 'screen-xl': '80rem', 'screen-2xl': '96rem' };
+        merge(U['max-w'], { 'prose': '65ch', ...screens });
+        merge(U['min-w'], { 'prose': '65ch', ...screens });
+        const brk = { $prop: '', 'auto': 'auto', 'avoid': 'avoid', 'all': 'all', 'avoid-page': 'avoid-page', 'page': 'page', 'left': 'left', 'right': 'right', 'column': 'column' };
+        merge(U.break, {
+            'keep': 'word-break: keep-all',
+            'after':  { ...brk, $prop: 'break-after' },
+            'before': { ...brk, $prop: 'break-before' },
+            'inside': { $prop: 'break-inside', 'auto': 'auto', 'avoid': 'avoid', 'avoid-page': 'avoid-page', 'avoid-column': 'avoid-column' },
+        });
+        // ---- Typography ----
+        Object.assign(U, { 'normal-case': 'text-transform: none' });
+        merge(U.text, { 'start': 'text-align: start', 'end': 'text-align: end' });
+        // text-lg/7, text-sm/tight, text-sm/[17px], text-sm/(--lh)
+        U.text.$default = (v, ctx) => {
+            const m = v.match(/^([a-z0-9]+)\/(.+)$/);
+            const size = m && U.text[m[1]];
+            if (typeof size !== 'string' || !size.startsWith('font-size')) return;
+            const named = { none: '1', tight: '1.25', snug: '1.375', normal: '1.5', relaxed: '1.625', loose: '2' };
+            let lh = m[2];
+            if (hasOwn(named, lh)) lh = named[lh];
+            else if (/^\d+(\.\d+)?$/.test(lh)) lh = `calc(var(--spacing) * ${lh})`;
+            else if (/^\[.+\]$/.test(lh)) lh = decodeArbitraryValue(lh.slice(1, -1));
+            else if (/^\(--[\w-]+\)$/.test(lh)) lh = `var(${lh.slice(1, -1)})`;
+            else return;
+            ctx.$prop = '';
+            return `${size.split(';')[0]}; line-height: ${lh}`;
+        };
+        U.text.$arbitrary = (value, ctx) => {
+            // bare var() is a color in Tailwind; text-(length:--x) / text-[length:...] select the font size
+            if (ctx.$hint ? ctx.$hint === 'color' : (looksLikeColor(value) || /^var\(/.test(value))) {
+                ctx.$prop = 'color';
+            } else {
+                ctx.$prop = 'font-size';
+            }
+            return value;
+        };
+        merge(U.align, { 'sub': 'sub', 'super': 'super' });
+        merge(U.list, { 'image': { $prop: 'list-style-image', 'none': 'none', $arbitrary: true } });
+        U['will-change'].$values = { 'auto': 'auto', 'scroll': 'scroll-position', 'scroll-position': 'scroll-position', 'contents': 'contents', 'transform': 'transform' };
+
+        // ---- Borders ----
+        merge(U.rounded, {
+            's':  { $inherit, $prop: ['border-start-start-radius', 'border-end-start-radius'] },
+            'e':  { $inherit, $prop: ['border-start-end-radius', 'border-end-end-radius'] },
+            'ss': { $inherit, $prop: 'border-start-start-radius' },
+            'se': { $inherit, $prop: 'border-start-end-radius' },
+            'ee': { $inherit, $prop: 'border-end-end-radius' },
+            'es': { $inherit, $prop: 'border-end-start-radius' },
+        });
+        merge(U.border, {
+            's': { $inherit, $prop: 'border-inline-start-width' },
+            'e': { $inherit, $prop: 'border-inline-end-width' },
+            'hidden': { '': 'border-style: hidden' },
+        });
+
+        // ---- Masks ----
+        {
+            const m2 = (prop, val) => `-webkit-mask-${prop}: ${val}; mask-${prop}: ${val}`;
+            const mp = prop => [`-webkit-mask-${prop}`, `mask-${prop}`];
+            const box = { 'border': 'border-box', 'padding': 'padding-box', 'content': 'content-box', 'fill': 'fill-box', 'stroke': 'stroke-box', 'view': 'view-box' };
+            U.mask = {
+                $arbitrary: (value, ctx) => { ctx.$prop = mp('image'); return value; },
+                'none': { '': m2('image', 'none') },
+                'clip': { $prop: mp('clip'), ...box, 'no-clip': 'no-clip' },
+                'origin': { $prop: mp('origin'), ...box },
+                'composite': {
+                    'add': '-webkit-mask-composite: source-over; mask-composite: add',
+                    'subtract': '-webkit-mask-composite: source-out; mask-composite: subtract',
+                    'intersect': '-webkit-mask-composite: source-in; mask-composite: intersect',
+                    'exclude': '-webkit-mask-composite: xor; mask-composite: exclude',
+                },
+                'alpha': 'mask-mode: alpha',
+                'luminance': 'mask-mode: luminance',
+                'match': 'mask-mode: match-source',
+                'type': { $prop: 'mask-type', 'alpha': 'alpha', 'luminance': 'luminance' },
+                'center': m2('position', 'center'), 'top': m2('position', 'top'), 'right': m2('position', 'right'),
+                'bottom': m2('position', 'bottom'), 'left': m2('position', 'left'),
+                'top-left': m2('position', 'top left'), 'top-right': m2('position', 'top right'),
+                'bottom-left': m2('position', 'bottom left'), 'bottom-right': m2('position', 'bottom right'),
+                'repeat': { $prop: mp('repeat'), '': 'repeat', 'x': 'repeat-x', 'y': 'repeat-y', 'round': 'round', 'space': 'space' },
+                'no-repeat': m2('repeat', 'no-repeat'),
+                'auto': m2('size', 'auto'), 'cover': m2('size', 'cover'), 'contain': m2('size', 'contain'),
+                'size': { $prop: mp('size'), $arbitrary: true },
+                'position': { $prop: mp('position'), $arbitrary: true },
+            };
+        }
+
+        // ---- Interactivity / a11y ----
+        Object.assign(U, {
+            'scheme': { $prop: 'color-scheme', 'normal': 'normal', 'light': 'light', 'dark': 'dark', 'light-dark': 'light dark', 'only-light': 'only light', 'only-dark': 'only dark' },
+            'field-sizing': { $prop: 'field-sizing', 'fixed': 'fixed', 'content': 'content' },
+            'forced-color-adjust-auto': 'forced-color-adjust: auto',
+            'forced-color-adjust-none': 'forced-color-adjust: none',
+            'appearance-auto': 'appearance: auto',
+            'scrollbar': {
+                'auto': 'scrollbar-width: auto', 'thin': 'scrollbar-width: thin', 'none': 'scrollbar-width: none',
+                'gutter': { $prop: 'scrollbar-gutter', 'auto': 'auto', 'stable': 'stable', 'stable-both-edges': 'stable both-edges' },
+                $color: (c, o, ctx) => {
+                    ctx.$prop = '';
+                    return `--q-scrollbar-thumb: ${generateColorCss(c, o)}; scrollbar-color: var(--q-scrollbar-thumb, auto) var(--q-scrollbar-track, auto)`;
+                },
+                'track': {
+                    $color: (c, o, ctx) => {
+                        ctx.$prop = '';
+                        return `--q-scrollbar-track: ${generateColorCss(c, o)}; scrollbar-color: var(--q-scrollbar-thumb, auto) var(--q-scrollbar-track, auto)`;
+                    },
+                },
+            },
+        });
+        for (const key of ['accent', 'caret']) if (U[key]) merge(U[key], { 'auto': 'auto' });
+    }
+
     // Apply startup extensions before utility resolution and caching begin
     for (const ext of Q.cssExtensions ?? []) {
         addColors(ext.colors);
+        aliasBareColors();
         merge(UTILITY_CONFIG, ext.utilities);
         Object.assign(PREFIX_HANDLERS, ext.prefixes);
     }
@@ -2058,13 +2457,85 @@
     // =========================================================================
     // =========================================================================
 
+    // Tailwind arbitrary-value decoding, shared by `p-[3px]` and `[prop:value]`:
+    //   1fr_2fr -> 1fr 2fr,  my__image.png -> my_image.png,
+    //   calc(100%+8px) -> calc(100% + 8px)  (CSS requires spaces around + and -)
+    const decodeArbitraryValue = raw => raw
+        .replace(/__|_/g, v => v === '__' ? '_' : ' ')
+        .replace(/(calc|min|max|clamp)\(([^()]*)\)/g, (m, fn, body) => `${fn}(${body.replace(/([\w)%])([+-])([\w(.])/g, "$1 $2 $3")})`);
+
     function _resolveUtility(className) {
         // Stage 0: Handle prefixes like `!` (important) and `-` (negative).
-        const isImportant = className.startsWith('!');
-        const classNameWithoutImportant = isImportant ? className.substring(1) : className;
+        // v3 wrote `!flex`, v4 writes `flex!` — both are accepted.
+        const isImportant = className.startsWith('!') || (className.length > 1 && className.endsWith('!'));
+        const classNameWithoutImportant = !isImportant ? className
+            : className.startsWith('!') ? className.substring(1) : className.slice(0, -1);
+
+        // `@container`, `@container/name`, `@container-size`, `@container-normal`
+        const containerMatch = classNameWithoutImportant.match(/^@container(?:-(size|normal))?(?:\/([\w-]+))?$/);
+        if (containerMatch) {
+            const [, kind, name] = containerMatch;
+            const type = kind === 'size' ? 'size' : kind === 'normal' ? 'normal' : 'inline-size';
+            return {
+                css: `container-type: ${type};${name ? ` container-name: ${name};` : ''}`,
+                base: undefined, selector: undefined, order: [8e15 - 1],
+            };
+        }
+
+        // Stage 0.4: Arbitrary properties, e.g. `[mask-image:linear-gradient(...)]`,
+        // `[transform:perspective(260px)_rotateX(62deg)]`, `[--my-var:10px]`.
+        // Tailwind sorts them after all regular utilities.
+        const arbitraryProperty = classNameWithoutImportant.match(/^\[(--[\w-]+|[a-z][\w-]*):(.+)\]$/i);
+        if (arbitraryProperty) {
+            const value = decodeArbitraryValue(arbitraryProperty[2]).trim();
+            if (!value) return null;
+            return {
+                css: `${arbitraryProperty[1]}: ${value}${isImportant ? ' !important' : ''};`,
+                base: undefined,
+                selector: undefined,
+                order: [8e15],
+            };
+        }
 
         const isNegative = classNameWithoutImportant.startsWith('-');
-        const baseClassName = isNegative ? classNameWithoutImportant.substring(1) : classNameWithoutImportant;
+        let baseClassName = isNegative ? classNameWithoutImportant.substring(1) : classNameWithoutImportant;
+
+        // v4 CSS-variable shorthand:  bg-(--brand)  text-(length:--size)  fill-(--c,#000)  bg-(--c)/50
+        {
+            const vs = baseClassName.match(/^(.+?)-\((?:([a-z-]+):)?(--[\w-]+)(?:,([^)]*))?\)(\/.+)?$/);
+            if (vs) {
+                baseClassName = `${vs[1]}-[${vs[2] ? vs[2] + ':' : ''}var(${vs[3]}${vs[4] ? ',' + vs[4] : ''})]${vs[5] || ''}`;
+            }
+        }
+
+        // Stage 0.5: Opacity modifier that the plain `-[...]` / `name/N` parsing can't see:
+        //   bg-[#1a0633]/50     -> arbitrary value + percent modifier (0.5)
+        //   bg-white/[0.03]     -> bracket modifier, already a fraction (0.03)
+        //   bg-pink-500/[71.37%]-> bracket percentage
+        //   bg-cyan-400/(--a)   -> CSS variable holding a percentage
+        // Fractions like `w-1/2` / `top-1/2` / `text-sm/[1.5]` are untouched: the modifier is only taken
+        // when the part before the slash is an arbitrary value or ends with a known color.
+        let modifierOpacity = null;
+        {
+            const endsWithColor = base => base.endsWith(']') ||
+                base.split('-').some((_, i, a) => i > 0 && colorMap.has(a.slice(i).join('-')));
+            let m, base = null;
+            if ((m = baseClassName.match(/^(.+)\/\((--[\w-]+)\)$/)) && endsWithColor(m[1])) {
+                base = m[1];
+                const cssVar = `var(${m[2]})`;
+                modifierOpacity = Object.assign(new Number(1), { cssVar, toFixed: () => cssVar });
+            } else if ((m = baseClassName.match(/^(.+-\[.+\])\/(\d+(?:\.\d+)?)$/))) {
+                base = m[1];
+                modifierOpacity = Number(m[2]) / 100;
+            } else if ((m = baseClassName.match(/^(.+)\/\[(\d*\.?\d+)(%?)\]$/)) && endsWithColor(m[1])) {
+                base = m[1];
+                modifierOpacity = m[3] ? Number(m[2]) / 100 : Number(m[2]);
+            }
+            if (base !== null) {
+                baseClassName = base;
+                if (!(modifierOpacity >= 0 && modifierOpacity <= 1)) return null;
+            }
+        }
 
         // Stage 1: Parse for arbitrary values, e.g., 'p-[3px]'.
         const arbitraryStart = baseClassName.indexOf('-[');
@@ -2160,15 +2631,7 @@
         // For 'rounded-md', remainingPath becomes 'md'.
         // For 'bg-red-500', remainingPath becomes 'red-500'.
         let valuePart = isArbitrary
-            ? baseClassName
-                .slice(arbitraryStart + 2, -1)
-                // 1fr_2fr                    → 1fr 2fr
-                // 0_4px_10px_black           → 0 4px 10px black
-                // url(my__image.png)         → url(my_image.png)
-                // var(--my__color)           → var(--my_color)
-                .replace(/__|_/g, v => v === '__' ? '_' : ' ')
-                // CSS requires spaces around + and - inside math functions: calc(100%+8px) is invalid.
-                .replace(/(calc|min|max|clamp)\(([^()]*)\)/g, (m, fn, body) => `${fn}(${body.replace(/([\w)%])([+-])([\w(.])/g, "$1 $2 $3")})`)
+            ? decodeArbitraryValue(baseClassName.slice(arbitraryStart + 2, -1))
             : remainingPath;
 
 
@@ -2196,9 +2659,35 @@
             }
         }
 
+        // A bracket/percent modifier only makes sense on colors. Never drop it silently (`p-4/[0.5]`).
+        if (modifierOpacity !== null && !isArbitrary &&
+            !(typeof context.$color === 'function' && colorMap.has(valuePart))) {
+            return null;
+        }
+
         let cssValue = null;
 
         if (isArbitrary) {
+            // Type hints: text-[color:var(--x)], bg-[size:60px_60px], fill-(color:--x)
+            const hint = valuePart.match(/^(color|length|size|percentage|position|image|url|number|ratio|angle|integer|line-width|family-name|absolute-size|relative-size|bg-size|shadow):(?!\/)([\s\S]+)$/);
+            if (hint) {
+                context.$hint = hint[1];
+                valuePart = hint[2];
+            }
+            // `bg-[#1a0633]/50` -> `rgb(26 6 51 / 0.5)`, like Tailwind does for arbitrary hex colors.
+            if (modifierOpacity !== null) {
+                const hex = valuePart.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+                if (modifierOpacity.cssVar) {
+                    valuePart = `color-mix(in oklab, ${valuePart} ${modifierOpacity.cssVar}, transparent)`;
+                } else if (hex) {
+                    valuePart = `rgb(${hexToRgb(valuePart).join(' ')} / ${+modifierOpacity.toFixed(3)})`;
+                } else if (isColorValue(valuePart, context) || /^var\(/.test(valuePart)) {
+                    valuePart = `color-mix(in oklab, ${valuePart} ${+(modifierOpacity * 100).toFixed(1)}%, transparent)`;
+                } else {
+                    return null; // modifier on a non-color arbitrary value
+                }
+                context.$hint = context.$hint || 'color';
+            }
             // For arbitrary values like `p-[3px]`, `valuePart` is '3px' (or '-3px' if negative).
             if (typeof context.$arbitrary === 'function') {
                 cssValue = context.$arbitrary(valuePart, context);
@@ -2231,7 +2720,9 @@
             // Case 4: Check if it's a known color keyword (e.g., 'border-white').
             // We check the base color name, ignoring any opacity modifier like '/50'.
             if (typeof context.$color === 'function' && colorMap.has(parts[0])) {
-                const opacity = parts[1] ? Number(parts[1])/100 : null;
+                const opacity = modifierOpacity !== null
+                    ? modifierOpacity
+                    : parts[1] ? Number(parts[1])/100 : null;
                 if (isNaN(opacity)) return null
                 cssValue = context.$color(parts[0], opacity, context);
             }
@@ -2348,7 +2839,8 @@
         selectors.flatMap(s => splitSelectorList(handler(s)));
 
     const splitVariants = s =>
-        s.match(/(?:\[[^\]]*]|[^:])+/g) ?? [];
+        // `:` inside [...] or (...) belongs to the value: bg-[size:1px], text-(length:--x)
+        s.match(/(?:\[[^\]]*]|\([^)]*\)|[^:])+/g) ?? [];
 
     // The scope class is prepended to the whole selector, so a raw document-level
     // context (`:root`/`html`/`body`/`.dark`) can't match from inside the component.
@@ -2367,8 +2859,9 @@
      */
     function generateCssFromRules(rules, scopeClass = null) {
         // {'lg': {'.q-css-1 div:hover': ["background-color: var(--red-500);"]}}
-        const groupByWrapper = new Map([['noWrapper', new Map()]])
-        const wrappersByKey = new Map([['noWrapper', []]])
+        const groupByWrapper = new Map()
+        const wrappersByKey = new Map()
+        const sequence = [{ key: 'noWrapper', map: new Map(), wrappers: [] }]
 
         for (const [rawSelector, selectorRule] of rules.entries()) {
 
@@ -2397,6 +2890,8 @@
 
                 const ruleWrappers = [];
                 const wrapperPrefixes = [];
+                const orderedKeys = [];
+                let hasUnorderedWrapper = false;
 
                 // Apply all prefix handlers from the key (e.g., from "dark:hover")
                 for (const prefix of prefixList) {
@@ -2407,9 +2902,15 @@
                     }
                     if (handlerConfig.type === 'pseudo') {
                         selectorParts = applySelectorHandler(selectorParts, handlerConfig.handler)
+                        if (handlerConfig.wrap) { // e.g. `hover:` -> @media (hover: hover), kept in cascade order
+                            ruleWrappers.push(handlerConfig.wrap.handler);
+                            wrapperPrefixes.push(handlerConfig.wrap.key);
+                            orderedKeys.push(handlerConfig.wrap.key);
+                        }
                     } else { // 'wrapper'
                         ruleWrappers.push(handlerConfig.handler);
                         wrapperPrefixes.push(prefix);
+                        hasUnorderedWrapper = true;
                     }
                 }
 
@@ -2417,15 +2918,25 @@
                     ? JSON.stringify(wrapperPrefixes)
                     : 'noWrapper';
 
-                if (!groupByWrapper.has(wrapperKey)) {
-                    groupByWrapper.set(wrapperKey, new Map());
-                    wrappersByKey.set(wrapperKey, ruleWrappers);
+                let declarationsBySelectorByWrapper;
+                if (!hasUnorderedWrapper) {
+                    // Plain rules and `hover:` rules live in one ordered sequence so that
+                    // hover < focus < active keeps working like in Tailwind.
+                    if (sequence[sequence.length - 1].key !== wrapperKey) {
+                        sequence.push({ key: wrapperKey, map: new Map(), wrappers: ruleWrappers });
+                    }
+                    declarationsBySelectorByWrapper = sequence[sequence.length - 1].map;
+                } else {
+                    if (!groupByWrapper.has(wrapperKey)) {
+                        groupByWrapper.set(wrapperKey, new Map());
+                        wrappersByKey.set(wrapperKey, ruleWrappers);
+                    }
+                    declarationsBySelectorByWrapper = groupByWrapper.get(wrapperKey);
                 }
 
                 // This map will group CSS declarations by their final, transformed selector.
                 // Key: a string like '.my-class:hover' or '.my-class::placeholder'
                 // Value: a Set of CSS declarations like 'color: red;'
-                const declarationsBySelectorByWrapper = groupByWrapper.get(wrapperKey);
 
                 // Add declarations from utility classes
                 const resolved = resolveUtility(utility);
@@ -2463,14 +2974,17 @@
 
         // Generate CSS rules for each final selector group for each wrapper group.
         const finalCssChunks = [];
-        for (const [wrapper, declarationsBySelector] of groupByWrapper.entries()) {
+        const chunks = [
+            ...sequence.map(c => [c.map, c.wrappers]),
+            ...[...groupByWrapper.entries()].map(([key, map]) => [map, wrappersByKey.get(key)]),
+        ];
+        for (const [declarationsBySelector, wrappers] of chunks) {
             const group = []
             for (const [ruleSelector, declarations] of declarationsBySelector.entries()) {
                 if (declarations.size > 0) {
                     group.push(`${ruleSelector} { ${[...declarations].join(' ')} }\n`);
                 }
             }
-            const wrappers = wrappersByKey.get(wrapper);
             let groupStr = group.join('');
             for (let i = wrappers.length - 1; i >= 0; i--) {
                 groupStr = wrappers[i](`\n  ${groupStr}`);
@@ -2516,16 +3030,15 @@
             return PREFIX_HANDLERS[prefix];
         }
 
+        const decode = raw => raw.replace(/__|_/g, v => v === '__' ? '_' : ' ');
+        let m;
+
         // data-[state=open]:block
         // aria-[current=page]:font-bold
         const attributeMatch = prefix.match(/^(data|aria)-\[(.+)]$/);
         if (attributeMatch) {
             const [, namespace, rawExpression] = attributeMatch;
-
-            const expression = rawExpression.replace(
-                /__|_/g,
-                value => value === '__' ? '_' : ' '
-            );
+            const expression = decode(rawExpression);
 
             const match = expression.match(/^([\w-]+)(?:=(.*))?$/s);
             if (!match) return null;
@@ -2539,23 +3052,18 @@
                     .replace(/\\/g, '\\\\')
                     .replace(/"/g, '\\"')}"]`;
 
-            return {
-                type: 'pseudo',
-                handler: selector => `${selector}${suffix}`,
-            };
+            return pseudo(suffix);
         }
 
-        // Arbitrary variant like [&>p]:mt-4
-        // Replaces underscores with spaces (except double underscores '__').
-        if (
-            prefix.length > 2 &&
-            prefix.startsWith('[') &&
-            prefix.endsWith(']')
-        ) {
-            const template = prefix
-                .slice(1, -1)
-                .replace(/__|_/g, v => v === '__' ? '_' : ' ');
+        // data-active:underline  ->  [data-active]
+        if ((m = prefix.match(/^data-([\w-]+)$/))) return pseudo(`[data-${m[1]}]`);
 
+        // Arbitrary variant like [&>p]:mt-4 or [@supports(display:grid)]:grid
+        if (prefix.length > 2 && prefix.startsWith('[') && prefix.endsWith(']')) {
+            const template = decode(prefix.slice(1, -1));
+            if (template.startsWith('@')) {
+                return { type: 'wrapper', handler: rule => `${template} {${rule}}` };
+            }
             return {
                 type: 'pseudo',
                 handler(selector) {
@@ -2566,17 +3074,93 @@
             };
         }
 
-        const dynamicMatch = prefix.match(/^(group|peer)-(.*)$/);
+        // The `:hover` / `[aria-expanded="true"]` / `:has(a)` part of any simple pseudo variant.
+        const SENTINEL = '\u0001';
+        const suffixOf = cfg => {
+            if (!cfg || cfg.type !== 'pseudo') return null;
+            const out = cfg.handler(SENTINEL);
+            if (typeof out !== 'string' || !out.startsWith(SENTINEL)) return null;
+            const suffix = out.slice(1);
+            return suffix.includes(SENTINEL) ? null : suffix;
+        };
+
+        // min-[320px]:flex  /  max-[600px]:flex
+        if ((m = prefix.match(/^(min|max)-\[(.+)]$/))) {
+            const size = decode(m[2]);
+            return media(m[1] === 'min' ? `(width >= ${size})` : `(width < ${size})`);
+        }
+
+        // Container queries: @sm:flex  @min-[475px]:flex  @max-md:flex  @sm/main:flex
+        if ((m = prefix.match(/^@(?:(min|max)-)?(\[.+]|[\w]+)(?:\/([\w-]+))?$/))) {
+            const [, kind, rawSize, name] = m;
+            const size = rawSize.startsWith('[') ? decode(rawSize.slice(1, -1)) : BREAKPOINT_WIDTHS[rawSize];
+            if (!size || rawSize === 'px') return null;
+            return atRule(`@container${name ? ' ' + name : ''} (width ${kind === 'max' ? '<' : '>='} ${size})`);
+        }
+
+        // supports-[display:grid]:grid  /  supports-grid:grid
+        if ((m = prefix.match(/^supports-(?:\[(.+)]|([\w-]+))$/))) {
+            let cond = m[1] ? decode(m[1]) : `${m[2]}: var(--q)`;
+            if (!cond.includes(':') && !cond.includes('(')) cond = `${cond}: var(--q)`;
+            const wrapped = cond.startsWith('(') || /^(not|selector)\b/.test(cond) ? cond : `(${cond})`;
+            return atRule(`@supports ${wrapped}`, `@supports not ${wrapped}`);
+        }
+
+        // nth-3:flex  nth-[2n+1]:flex  nth-last-3:flex  nth-of-type-3:flex  nth-last-of-type-3:flex
+        if ((m = prefix.match(/^nth-(last-)?(of-type-)?(.+)$/))) {
+            const [, last, ofType, arg] = m;
+            const value = arg.startsWith('[') && arg.endsWith(']') ? decode(arg.slice(1, -1)) : arg;
+            if (!/^[\w+\-*n ]+$/.test(value)) return null;
+            return pseudo(`:nth-${last ? 'last-' : ''}${ofType ? 'of-type' : 'child'}(${value})`);
+        }
+
+        // has-[a]:flex  has-checked:flex  has-hover:flex
+        if ((m = prefix.match(/^has-(.+)$/))) {
+            if (m[1].startsWith('[') && m[1].endsWith(']')) return pseudo(`:has(${decode(m[1].slice(1, -1))})`);
+            const sfx = suffixOf(getPrefixHandler(m[1]));
+            return sfx ? pseudo(`:has(*${sfx})`) : null;
+        }
+
+        // not-hover:flex  not-[.x]:flex  not-print:flex  not-supports-[display:grid]:flex
+        if ((m = prefix.match(/^not-(.+)$/))) {
+            if (m[1].startsWith('[') && m[1].endsWith(']')) return pseudo(`:not(${decode(m[1].slice(1, -1))})`);
+            const inner = getPrefixHandler(m[1]);
+            if (inner && inner.type === 'wrapper' && inner.negated) return { type: 'wrapper', handler: inner.negated };
+            const sfx = suffixOf(inner);
+            return sfx ? pseudo(`:not(*${sfx})`) : null;
+        }
+
+        // in-hover:flex  in-[.x]:flex  -- styled by ANY ancestor, no `group` class required
+        if ((m = prefix.match(/^in-(.+)$/))) {
+            let ancestor;
+            if (m[1].startsWith('[') && m[1].endsWith(']')) ancestor = decode(m[1].slice(1, -1));
+            else {
+                const sfx = suffixOf(getPrefixHandler(m[1]));
+                if (!sfx) return null;
+                ancestor = `*${sfx}`;
+            }
+            return { type: 'pseudo', handler: selector => `:where(${ancestor}) ${selector}` };
+        }
+
+        // group-hover  group-hover/item  group-has-[a]  group-aria-expanded  peer-checked  peer-invalid/name
+        const dynamicMatch = prefix.match(/^(group|peer)-(.+)$/);
         if (!dynamicMatch) return null;
-        const [, type, state] = dynamicMatch;
+        const [, type, rest] = dynamicMatch;
+        const named = rest.match(/^(.*?)(?:\/([\w-]+))?$/);
+        const state = named[1];
+        const groupName = named[2];
 
-        if (!DYNAMIC_VARIANT_STATES.has(state)) return null;
-        const suffix = (state === 'open')  ?  '[open]'  : `:${state}`;
+        const inner = (state.startsWith('group-') || state.startsWith('peer-')) ? null : getPrefixHandler(state);
+        let suffix = suffixOf(inner);
+        if (!suffix && DYNAMIC_VARIANT_STATES.has(state)) suffix = state === 'open' ? '[open]' : `:${state}`;
+        if (!suffix) return null;
 
-        const modifierSelector = `.${type}${suffix}`;
+        const marker = groupName ? `.${CSS.escape(`${type}/${groupName}`)}` : `.${type}`;
+        const modifierSelector = `${marker}${suffix}`;
 
         return {
             type: 'pseudo',
+            wrap: inner && inner.wrap,
 
             handler(selector) {
                 const generatedSelectors = new Set();
@@ -2769,7 +3353,7 @@
     // Minified preflight.css + animations
     appendStyleTag('q-css-preflight', `
 @layer base{
-:root{--spacing:.25rem;--font-sans:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';--font-serif:ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;--font-mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace}*,::after,::backdrop,::before,::file-selector-button{box-sizing:border-box;margin:0;padding:0;border:0 solid #e5e7eb}:host,html{line-height:1.5;-webkit-text-size-adjust:none;tab-size:4;font-family:var( --font-sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji' );font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:var( --font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace );font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-0.25em}sup{top:-0.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring{outline:auto}progress{vertical-align:baseline}summary{display:list-item}menu,ol,ul{list-style:none}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}::file-selector-button,button,input,optgroup,select,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;border-radius:0;background-color:transparent;opacity:1}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not (-webkit-appearance:-apple-pay-button)) or (contain-intrinsic-size:1px){::placeholder{color:color-mix(in oklab, currentcolor 50%, transparent)}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit,::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-meridiem-field,::-webkit-datetime-edit-millisecond-field,::-webkit-datetime-edit-minute-field,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-second-field,::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type='button'],[type='reset'],[type='submit']),::file-selector-button{appearance:button}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden='until-found'])){display:none !important}}
+:root{--spacing:.25rem;--font-sans:ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';--font-serif:ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;--font-mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace}*,::after,::backdrop,::before,::file-selector-button{box-sizing:border-box;margin:0;padding:0;border:0 solid ${V3 ? '#e5e7eb' : 'currentColor'}}:host,html{line-height:1.5;-webkit-text-size-adjust:none;tab-size:4;font-family:var( --font-sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji' );font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:var( --font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace );font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-0.25em}sup{top:-0.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring{outline:auto}progress{vertical-align:baseline}summary{display:list-item}menu,ol,ul{list-style:none}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}::file-selector-button,button,input,optgroup,select,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;border-radius:0;background-color:transparent;opacity:1}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not (-webkit-appearance:-apple-pay-button)) or (contain-intrinsic-size:1px){::placeholder{color:color-mix(in oklab, currentcolor 50%, transparent)}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit,::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-meridiem-field,::-webkit-datetime-edit-millisecond-field,::-webkit-datetime-edit-minute-field,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-second-field,::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type='button'],[type='reset'],[type='submit']),::file-selector-button{appearance:button}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden='until-found'])){display:none !important}}
 .container{width:100%}
 @media(min-width:40rem){.container{max-width:40rem}}
 @media(min-width:48rem){.container{max-width:48rem}}
@@ -2907,7 +3491,27 @@ opacity: 1;
         return scope;
     };
 
-    // PREFIX_HANDLERS is already declared in the intended cascade order
+    // Tailwind v4 cascade order (low -> high priority). Unknown/custom prefixes stay at the end.
+    {
+        const V4_ORDER = ['*', '**', 'first-letter', 'first-line', 'marker', 'selection', 'file', 'placeholder', 'backdrop',
+            'details-content', 'before', 'after', 'first', 'last', 'only', 'odd', 'even', 'first-of-type', 'last-of-type',
+            'only-of-type', 'visited', 'target', 'open', 'default', 'checked', 'indeterminate', 'placeholder-shown',
+            'autofill', 'optional', 'required', 'valid', 'invalid', 'user-valid', 'user-invalid', 'in-range',
+            'out-of-range', 'read-only', 'empty', 'focus-within', 'hover', 'focus', 'focus-visible', 'active', 'enabled',
+            'disabled', 'inert', ...ARIA_STATES.map(a => `aria-${a}`), 'motion-safe', 'motion-reduce', 'contrast-more',
+            'contrast-less', 'max-2xl', 'max-xl', 'max-lg', 'max-md', 'max-sm', 'sm', 'md', 'lg', 'xl', '2xl', 'portrait',
+            'landscape', 'ltr', 'rtl', 'dark', 'starting', 'print', 'forced-colors', 'not-forced-colors', 'inverted-colors',
+            'pointer-none', 'pointer-coarse', 'pointer-fine', 'any-pointer-none', 'any-pointer-coarse', 'any-pointer-fine',
+            'noscript'];
+        const entries = Object.entries(PREFIX_HANDLERS);
+        for (const key of Object.keys(PREFIX_HANDLERS)) delete PREFIX_HANDLERS[key];
+        for (const key of V4_ORDER) {
+            const hit = entries.find(([k]) => k === key);
+            if (hit) PREFIX_HANDLERS[key] = hit[1];
+        }
+        for (const [k, v] of entries) if (!hasOwn(PREFIX_HANDLERS, k)) PREFIX_HANDLERS[k] = v;
+    }
+
     const PREFIX_ORDER = new Map(
         Object.keys(PREFIX_HANDLERS)
             .map((prefix, index) => [prefix, index])
@@ -2920,17 +3524,24 @@ opacity: 1;
             return staticRank * 3;
         }
 
-        const match = prefix.match(/^(group|peer)-(.+)$/);
+        // Dynamic variants sit in the gaps between static ones (each static prefix owns 3 rank units).
+        const at = (name, offset) => (PREFIX_ORDER.get(name) ?? PREFIX_ORDER.size) * 3 + offset;
+        let m;
 
-        if (match) {
-            const [, type, state] = match;
-            const stateRank =
-                PREFIX_ORDER.get(state) ?? PREFIX_ORDER.size;
-
-            // Keep dynamic variants next to their underlying state:
-            // hover, group-hover, peer-hover.
-            return stateRank * 3 + (type === 'group' ? 1 : 2);
+        if ((m = prefix.match(/^(group|peer)-(.+)$/))) {
+            const [, type, rest] = m;
+            const state = rest.replace(/\/[\w-]+$/, '');
+            // Keep dynamic variants next to their underlying state: hover, group-hover, peer-hover.
+            return getPrefixRank(state) + (type === 'group' ? 1 : 2);
         }
+        if (/^(in|has|not)-/.test(prefix)) return at('inert', 0.4);
+        if (/^(aria|data)-/.test(prefix)) return at('aria-selected', 0.5);
+        if (prefix.startsWith('nth-')) return at('aria-selected', 0.6);
+        if (prefix.startsWith('supports-')) return at('contrast-less', 0.5);
+        if (prefix.startsWith('max-[')) return at('max-sm', 0.5);
+        if (prefix.startsWith('min-[')) return at('2xl', 0.5);
+        if (prefix.startsWith('@')) return at('2xl', 0.7);
+        if (prefix.startsWith('[')) return at('noscript', 1.5);
 
         // Unknown prefixes are sorted last. They are normally rejected earlier.
         return PREFIX_ORDER.size * 3 + 3;
