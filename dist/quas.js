@@ -1,10 +1,8 @@
-// \0rolldown/runtime.js
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod, mod.exports), cb = null), mod.exports);
+(function() {
 
 // src/quas.js
-var require_quas = /* @__PURE__ */ __commonJSMin((() => {
 	(function() {
-		console.log("[Quas]: Loaded v2.0.0");
+		"use strict";
 		const Q = window.Quas = window.Quas || {};
 		const cssWarn = (token, message) => {
 			if (Q.CSSWarnings !== false && (typeof Q.CSSWarnings !== "function" || Q.CSSWarnings(token, message))) console.warn(message);
@@ -17,6 +15,7 @@ var require_quas = /* @__PURE__ */ __commonJSMin((() => {
 		Q.LegacyV3 ??= false;
 		const V3 = Q.LegacyV3 === true;
 		Q.CSSNonce ??= document.currentScript?.nonce || null;
+		if (Q.CSSPerformance) console.debug("[Quas] Loaded v2.0.0");
 		const colorMap = /* @__PURE__ */ new Map([
 			["transparent", "transparent"],
 			["current", "currentColor"],
@@ -1400,6 +1399,7 @@ var require_quas = /* @__PURE__ */ __commonJSMin((() => {
 						"ultra-expanded"
 					],
 					$num: (v) => `${v}%`,
+					$default: (v) => /^\d+(?:\.\d+)?%$/.test(v) ? v : void 0,
 					$arbitrary: true
 				}
 			},
@@ -3139,7 +3139,24 @@ var require_quas = /* @__PURE__ */ __commonJSMin((() => {
 			merge(UTILITY_CONFIG, ext.utilities);
 			Object.assign(PREFIX_HANDLERS, ext.prefixes);
 		}
-		const decodeArbitraryValue = (raw) => raw.replace(/__|_/g, (v) => v === "__" ? "_" : " ").replace(/(calc|min|max|clamp)\(([^()]*)\)/g, (m, fn, body) => `${fn}(${body.replace(/([\w)%])([+-])([\w(.])/g, "$1 $2 $3")})`);
+		const spaceMathOperators = (value) => {
+			const saved = [];
+			const hide = (text) => `__q${saved.push(text) - 1}__`;
+			const innermost = /([a-zA-Z]\w*)?\(([^()]*)\)/g;
+			let prev;
+			do {
+				prev = value;
+				value = value.replace(innermost, (m, fn, body) => {
+					fn = fn || "";
+					if (fn === "" || /^(?:calc|min|max|clamp)$/.test(fn)) body = body.replace(/([\w)%])([+-])([\w(.])/g, "$1 $2 $3");
+					return hide(`${fn}(${body})`);
+				});
+			} while (value !== prev);
+			let restored = value;
+			for (let i = 0; i < 50 && /__q\d+__/.test(restored); i++) restored = restored.replace(/__q(\d+)__/g, (m, n) => saved[n]);
+			return restored;
+		};
+		const decodeArbitraryValue = (raw) => spaceMathOperators(raw.replace(/__|_/g, (v) => v === "__" ? "_" : " "));
 		function _resolveUtility(className) {
 			const isImportant = className.startsWith("!") || className.length > 1 && className.endsWith("!");
 			const classNameWithoutImportant = !isImportant ? className : className.startsWith("!") ? className.substring(1) : className.slice(0, -1);
@@ -3244,6 +3261,7 @@ var require_quas = /* @__PURE__ */ __commonJSMin((() => {
 					context.$hint = hint[1];
 					valuePart = hint[2];
 				}
+				if (/^-{2,}[\w-]/.test(valuePart)) return null;
 				if (modifierOpacity !== null) {
 					const hex = valuePart.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
 					if (modifierOpacity.cssVar) valuePart = `color-mix(in oklab, ${valuePart} ${modifierOpacity.cssVar}, transparent)`;
@@ -4023,6 +4041,5 @@ opacity: 1;
 			});
 		}
 	})();
-}));
 
-export default require_quas();
+})();

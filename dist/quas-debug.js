@@ -1,13 +1,11 @@
-// \0rolldown/runtime.js
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod, mod.exports), cb = null), mod.exports);
+(function() {
 
 // src/quas-debug.js
-var require_quas_debug = /* @__PURE__ */ __commonJSMin((() => {
 	(function() {
 		"use strict";
 		const Q = window.Quas;
 		if (!Q) {
-			console.error("[Quas debug] подключите quas.debug.js ПОСЛЕ quas.js");
+			console.error("[Quas debug] подключите quas-debug.js ПОСЛЕ quas.js");
 			return;
 		}
 		if (Q.debug) return;
@@ -891,6 +889,5 @@ var require_quas_debug = /* @__PURE__ */ __commonJSMin((() => {
 		if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
 		else start();
 	})();
-}));
 
-export default require_quas_debug();
+})();

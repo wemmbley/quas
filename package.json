@@ -1,8 +1,8 @@
 {
   "name": "quas",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "<img src=\"Quas.png\" style=\"margin-top: 10px; margin-bottom: 0; padding-bottom: 0\">",
-  "main": "index.js",
+  "main": "dist/quas.js",
   "directories": {
     "doc": "docs"
   },

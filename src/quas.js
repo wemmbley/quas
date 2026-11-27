@@ -7,8 +7,6 @@
 // | -------------------------------------------------------
 // |
 (function () {
-	console.log('[Quas]: Loaded v2.0.0');
-	
     'use strict';
 
     // =========================================================================
@@ -38,6 +36,8 @@
     const V3 = Q.LegacyV3 === true;
 
     Q.CSSNonce ??= document.currentScript?.nonce || null;
+
+    if (Q.CSSPerformance) console.debug('[Quas] Loaded v2.0.0');
 
     // =========================================================================
     // COLOR PALETTE
@@ -1080,6 +1080,7 @@
                     'ultra-expanded',  // 200%
                 ],
                 $num: v => `${v}%`,
+                $default: v => /^\d+(?:\.\d+)?%$/.test(v) ? v : undefined, // font-stretch-50%
                 $arbitrary: true
             },
         },
@@ -2460,9 +2461,36 @@
     // Tailwind arbitrary-value decoding, shared by `p-[3px]` and `[prop:value]`:
     //   1fr_2fr -> 1fr 2fr,  my__image.png -> my_image.png,
     //   calc(100%+8px) -> calc(100% + 8px)  (CSS requires spaces around + and -)
-    const decodeArbitraryValue = raw => raw
-        .replace(/__|_/g, v => v === '__' ? '_' : ' ')
-        .replace(/(calc|min|max|clamp)\(([^()]*)\)/g, (m, fn, body) => `${fn}(${body.replace(/([\w)%])([+-])([\w(.])/g, "$1 $2 $3")})`);
+    //
+    // Parentheses are resolved innermost-first, so nested math works: calc(var(--a)-2px),
+    // min(100%,calc(100%-8px)). Non-math groups (var(), url(), rgb()...) are hidden behind
+    // placeholders while the operators of the enclosing calc/min/max/clamp are spaced, which keeps
+    // hyphenated names like var(--my-var) untouched.
+    const spaceMathOperators = value => {
+        const saved = [];
+        const hide = text => `__q${saved.push(text) - 1}__`;
+        const innermost = /([a-zA-Z]\w*)?\(([^()]*)\)/g;
+        let prev;
+        do {
+            prev = value;
+            value = value.replace(innermost, (m, fn, body) => {
+                fn = fn || '';
+                // bare (...) is a math group when nested inside calc()
+                if (fn === '' || /^(?:calc|min|max|clamp)$/.test(fn))
+                    body = body.replace(/([\w)%])([+-])([\w(.])/g, '$1 $2 $3');
+                return hide(`${fn}(${body})`);
+            });
+        } while (value !== prev);
+        // Restore (placeholders may be nested inside each other).
+        let restored = value;
+        for (let i = 0; i < 50 && /__q\d+__/.test(restored); i++)
+            restored = restored.replace(/__q(\d+)__/g, (m, n) => saved[n]);
+        return restored;
+    };
+
+    const decodeArbitraryValue = raw => spaceMathOperators(
+        raw.replace(/__|_/g, v => v === '__' ? '_' : ' ')
+    );
 
     function _resolveUtility(className) {
         // Stage 0: Handle prefixes like `!` (important) and `-` (negative).
@@ -2674,6 +2702,9 @@
                 context.$hint = hint[1];
                 valuePart = hint[2];
             }
+            // v3 `bg-[--x]` is not valid CSS (`background-image: --x`). Use `bg-(--x)` / `bg-[var(--x)]`.
+            // Reject it so the "unknown value" warning is printed instead of emitting a broken rule.
+            if (/^-{2,}[\w-]/.test(valuePart)) return null;
             // `bg-[#1a0633]/50` -> `rgb(26 6 51 / 0.5)`, like Tailwind does for arbitrary hex colors.
             if (modifierOpacity !== null) {
                 const hex = valuePart.match(/^#([\da-f]{3}|[\da-f]{6})$/i);

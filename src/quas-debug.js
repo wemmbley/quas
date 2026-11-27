@@ -27,7 +27,7 @@
 
     const Q = window.Quas;
     if (!Q) {
-        console.error('[Quas debug] подключите quas.debug.js ПОСЛЕ quas.js');
+        console.error('[Quas debug] подключите quas-debug.js ПОСЛЕ quas.js');
         return;
     }
     if (Q.debug) return; // повторное подключение

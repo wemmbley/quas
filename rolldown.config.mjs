@@ -1,44 +1,23 @@
-
 import { defineConfig } from 'rolldown';
 
-const entries = [
-    'quas',
-    'quas-debug',
-];
+// Сборка для подключения обычным <script src="..."> (CDN jsDelivr и т.п.).
+// format: 'iife' — НЕ 'es': ES-модуль с `export default` нельзя загрузить классическим <script>,
+// браузер падает с "Unexpected token 'export'".
+const entries = ['quas', 'quas-debug'];
+
+const base = { format: 'iife', name: undefined };
 
 export default defineConfig(
     entries.flatMap((name) => [
         // Обычная версия
         {
             input: `src/${name}.js`,
-            output: {
-                file: `dist/${name}.js`,
-                format: 'es',
-                minify: false,
-                sourcemap: false,
-            },
+            output: { ...base, file: `dist/${name}.js`, minify: false, sourcemap: false },
         },
-
-        // Минифицированная версия
+        // Минифицированная версия + Source Map
         {
             input: `src/${name}.js`,
-            output: {
-                file: `dist/${name}.min.js`,
-                format: 'es',
-                minify: true,
-                sourcemap: false,
-            },
-        },
-
-        // Минифицированная версия с Source Map
-        {
-            input: `src/${name}.js`,
-            output: {
-                file: `dist/${name}.min.js`,
-                format: 'es',
-                minify: true,
-                sourcemap: true,
-            },
+            output: { ...base, file: `dist/${name}.min.js`, minify: true, sourcemap: true },
         },
     ])
 );
